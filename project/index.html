@@ -1,0 +1,509 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowUp - To Do Planner</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+        <h1 class="logo">Flow<span>Up</span></h1>
+
+        <p class="menu-title">WORKSPACE</p>
+        <button class="nav-link active" data-page="dashboard"><i class="fa-solid fa-house"></i> Dashboard</button>
+        <button class="nav-link" data-page="tasks"><i class="fa-solid fa-list-check"></i> My Tasks</button>
+        <button class="nav-link" data-page="goals"><i class="fa-solid fa-bullseye"></i> Daily Goals</button>
+        <button class="nav-link" data-page="habits"><i class="fa-solid fa-calendar-check"></i> Habit Tracker</button>
+        <button class="nav-link" data-page="notes"><i class="fa-solid fa-note-sticky"></i> Quick Notes</button>
+
+        <p class="menu-title">PERSONAL GROWTH</p>
+        <button class="nav-link" data-page="vision"><i class="fa-solid fa-images"></i> Vision Board</button>
+        <button class="nav-link" data-page="sounds"><i class="fa-solid fa-headphones"></i> Focus Sounds</button>
+        <button class="nav-link" data-page="challenge"><i class="fa-solid fa-calendar-days"></i> 30-Day Challenge</button>
+        <button class="nav-link" data-page="reflection"><i class="fa-solid fa-book-open"></i> Weekly Reflection</button>
+        <button class="nav-link" data-page="lists"><i class="fa-solid fa-layer-group"></i> Smart Lists</button>
+        <button class="nav-link" data-page="milestones"><i class="fa-solid fa-flag"></i> Life Milestones</button>
+
+        <p class="menu-title">ACCOUNT</p>
+        <button class="nav-link" data-page="achievements"><i class="fa-solid fa-trophy"></i> Achievements</button>
+        <button class="nav-link" data-page="profile"><i class="fa-solid fa-user"></i> Profile Studio</button>
+
+        <div class="sidebar-bottom">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <h3>Small steps matter.</h3>
+            <p>Keep moving forward, one day at a time.</p>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div>
+                <h2 id="page-heading">Dashboard</h2>
+                <p id="today-date"></p>
+            </div>
+
+            <div class="topbar-actions">
+                <div class="xp-box">
+                    <i class="fa-solid fa-star"></i>
+                    <span id="top-xp">0</span> XP
+                </div>
+
+                <button class="theme-toggle" id="theme-toggle">
+                    <i class="fa-solid fa-moon"></i> Dark mode
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD -->
+
+        <section class="page active" id="dashboard">
+
+            <div class="welcome-card">
+                <div>
+                    <p>YOUR DAILY SPACE</p>
+                    <h1>Make today count.</h1>
+                    <p>A little progress every day adds up to big results.</p>
+                </div>
+                <i class="fa-solid fa-cloud-sun welcome-icon"></i>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fa-solid fa-list-check"></i>
+                    <p>Total tasks</p>
+                    <h2 id="dash-total">0</h2>
+                </div>
+
+                <div class="stat-card">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <p>Completed</p>
+                    <h2 id="dash-completed">0</h2>
+                </div>
+
+                <div class="stat-card">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <p>Daily goals</p>
+                    <h2 id="dash-goals">0/0</h2>
+                </div>
+
+                <div class="stat-card">
+                    <i class="fa-solid fa-fire"></i>
+                    <p>Habits done</p>
+                    <h2 id="dash-habits">0/0</h2>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+
+                <div class="content-card">
+                    <div class="section-heading">
+                        <div>
+                            <h3>Focus timer</h3>
+                            <p>Give one thing your full attention.</p>
+                        </div>
+                        <button class="text-btn" data-open-page="sounds">Focus sounds</button>
+                    </div>
+
+                    <div class="timer-display" id="timer-display">25:00</div>
+                    <p class="timer-status" id="timer-status">Ready when you are</p>
+
+                    <div class="timer-options">
+                        <button class="timer-option selected" data-minutes="25">25 min</button>
+                        <button class="timer-option" data-minutes="15">15 min</button>
+                        <button class="timer-option" data-minutes="5">5 min</button>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="primary-btn" id="timer-start">Start</button>
+                        <button class="secondary-btn" id="timer-reset">Reset</button>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h3>Today's progress</h3>
+                    <p>Your daily overview.</p>
+
+                    <p class="progress-label">
+                        Tasks completed
+                        <strong id="task-progress-text">0%</strong>
+                    </p>
+
+                    <div class="progress-bg">
+                        <div id="task-progress"></div>
+                    </div>
+
+                    <div class="glance-item">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        <div>
+                            <strong>Build consistency</strong>
+                            <p>Check off your habits each day.</p>
+                        </div>
+                    </div>
+
+                    <div class="glance-item">
+                        <i class="fa-solid fa-star"></i>
+                        <div>
+                            <strong>Earn experience</strong>
+                            <p>Complete tasks and goals to earn XP.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="content-card">
+                <h3>Today's tasks</h3>
+                <div id="dashboard-task-list"></div>
+            </div>
+
+        </section>
+
+        <!-- MY TASKS -->
+
+        <section class="page" id="tasks">
+            <div class="page-intro">
+                <h2>My Tasks</h2>
+                <p>Organize your day and keep track of what matters.</p>
+            </div>
+
+            <div class="task-summary">
+                <div><span>Total tasks</span><strong id="task-total">0</strong></div>
+                <div><span>Completed</span><strong id="task-completed">0</strong></div>
+                <div><span>Remaining</span><strong id="task-remaining">0</strong></div>
+            </div>
+
+            <div class="content-card">
+                <h3>Add a new task</h3>
+                <form id="task-form" class="task-form">
+                    <input id="task-input" placeholder="What do you need to do?" required>
+                    <input id="task-date" type="date" required>
+                    <input id="task-time" type="time">
+
+                    <select id="task-priority">
+                        <option>Low</option>
+                        <option selected>Medium</option>
+                        <option>High</option>
+                    </select>
+
+                    <select id="task-category">
+                        <option>Personal</option>
+                        <option>School</option>
+                        <option>Work</option>
+                        <option>Health</option>
+                        <option>Other</option>
+                    </select>
+
+                    <button class="primary-btn">Add task</button>
+                </form>
+            </div>
+
+            <div class="content-card">
+                <div class="filter-row">
+                    <input id="task-search" placeholder="Search tasks...">
+
+                    <select id="task-filter">
+                        <option>All</option>
+                        <option>Active</option>
+                        <option>Completed</option>
+                    </select>
+
+                    <select id="priority-filter">
+                        <option>All</option>
+                        <option>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                    </select>
+                </div>
+
+                <div id="task-list"></div>
+            </div>
+        </section>
+
+        <!-- DAILY GOALS -->
+
+        <section class="page" id="goals">
+            <div class="page-intro">
+                <h2>Daily Goals</h2>
+                <p>Choose small challenges and earn XP as you complete them.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Suggested goals</h3>
+                <div id="goal-examples" class="goal-grid"></div>
+            </div>
+
+            <div class="content-card">
+                <h3>Your goals for today</h3>
+                <div id="goal-list"></div>
+            </div>
+        </section>
+
+        <!-- HABITS -->
+
+        <section class="page" id="habits">
+            <div class="page-intro">
+                <h2>Habit Tracker</h2>
+                <p>Consistency is built one checkmark at a time.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Add a habit</h3>
+
+                <form id="habit-form" class="inline-form">
+                    <input id="habit-input" placeholder="Example: Read for 10 minutes" required>
+                    <button class="primary-btn">Add habit</button>
+                </form>
+
+                <p class="habit-summary">
+                    <strong id="habit-count">0/0</strong>
+                    habits completed today
+                </p>
+
+                <div id="habit-list"></div>
+            </div>
+        </section>
+
+        <!-- QUICK NOTES -->
+
+        <section class="page" id="notes">
+            <div class="page-intro">
+                <h2>Quick Notes</h2>
+                <p>Save thoughts, reminders and ideas in one place.</p>
+            </div>
+
+            <div class="content-card">
+                <form id="note-form">
+                    <input id="note-title" placeholder="Note title" required>
+                    <textarea id="note-text" placeholder="Write your note..." required></textarea>
+                    <button class="primary-btn">Save note</button>
+                </form>
+
+                <div id="notes-list" class="notes-grid"></div>
+            </div>
+        </section>
+
+        <!-- VISION BOARD -->
+
+        <section class="page" id="vision">
+            <div class="page-intro">
+                <h2>Vision Board</h2>
+                <p>Collect the goals and ideas that inspire your future.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Add to your vision board</h3>
+
+                <form id="vision-form" class="task-form">
+                    <input id="vision-title" placeholder="Your vision or goal" required>
+                    <input id="vision-detail" placeholder="Why is it important?">
+                    <input id="vision-image" placeholder="Image URL (optional)">
+                    <button class="primary-btn">Add vision</button>
+                </form>
+            </div>
+
+            <div id="vision-list" class="vision-grid"></div>
+        </section>
+
+        <!-- FOCUS SOUNDS -->
+
+        <section class="page" id="sounds">
+            <div class="page-intro">
+                <h2>Focus Sounds</h2>
+                <p>Choose a calm background sound while you work.</p>
+            </div>
+
+            <div class="sound-grid">
+                <div class="content-card sound-card">
+                    <i class="fa-solid fa-cloud-rain"></i>
+                    <h3>Rain</h3>
+                    <p>Soft steady noise for quiet focus.</p>
+                    <button class="primary-btn sound-button" data-sound="rain">Play sound</button>
+                </div>
+
+                <div class="content-card sound-card">
+                    <i class="fa-solid fa-water"></i>
+                    <h3>Ocean</h3>
+                    <p>A gentle, wave-like background.</p>
+                    <button class="primary-btn sound-button" data-sound="ocean">Play sound</button>
+                </div>
+
+                <div class="content-card sound-card">
+                    <i class="fa-solid fa-wind"></i>
+                    <h3>White Noise</h3>
+                    <p>A steady sound to help mask distractions.</p>
+                    <button class="primary-btn sound-button" data-sound="noise">Play sound</button>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <p id="sound-status">No sound playing.</p>
+                <button class="secondary-btn" id="sound-stop">Stop sounds</button>
+            </div>
+        </section>
+
+        <!-- 30 DAY CHALLENGE -->
+
+        <section class="page" id="challenge">
+            <div class="page-intro">
+                <h2>30-Day Challenge</h2>
+                <p>Pick one positive action and build momentum every day.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Your challenge</h3>
+
+                <form id="challenge-form" class="inline-form">
+                    <input id="challenge-name" placeholder="Example: Read every day" required>
+                    <button class="primary-btn">Start challenge</button>
+                </form>
+
+                <div id="challenge-area"></div>
+            </div>
+        </section>
+
+        <!-- WEEKLY REFLECTION -->
+
+        <section class="page" id="reflection">
+            <div class="page-intro">
+                <h2>Weekly Reflection</h2>
+                <p>Look back, notice your progress and plan your next steps.</p>
+            </div>
+
+            <div class="content-card">
+                <form id="reflection-form" class="reflection-form">
+                    <label>
+                        What went well this week?
+                        <textarea id="reflection-good" required></textarea>
+                    </label>
+
+                    <label>
+                        What was challenging?
+                        <textarea id="reflection-hard"></textarea>
+                    </label>
+
+                    <label>
+                        What do you want to focus on next week?
+                        <textarea id="reflection-next"></textarea>
+                    </label>
+
+                    <button class="primary-btn">Save reflection</button>
+                </form>
+            </div>
+
+            <div class="content-card">
+                <h3>Past reflections</h3>
+                <div id="reflection-list"></div>
+            </div>
+        </section>
+
+        <!-- SMART LISTS -->
+
+        <section class="page" id="lists">
+            <div class="page-intro">
+                <h2>Smart Lists</h2>
+                <p>Create custom lists for ideas, plans, books, errands and more.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Create a list</h3>
+
+                <form id="smart-list-form" class="inline-form">
+                    <input id="smart-list-name" placeholder="List name" required>
+                    <button class="primary-btn">Create list</button>
+                </form>
+
+                <div id="smart-lists"></div>
+            </div>
+        </section>
+
+        <!-- LIFE MILESTONES -->
+
+        <section class="page" id="milestones">
+            <div class="page-intro">
+                <h2>Life Milestones</h2>
+                <p>Keep meaningful achievements and future moments in one place.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Add a milestone</h3>
+
+                <form id="milestone-form" class="task-form">
+                    <input id="milestone-title" placeholder="Milestone title" required>
+                    <input id="milestone-date" type="date">
+                    <input id="milestone-detail" placeholder="A few details">
+                    <button class="primary-btn">Add milestone</button>
+                </form>
+
+                <div id="milestone-list"></div>
+            </div>
+        </section>
+
+        <!-- ACHIEVEMENTS -->
+
+        <section class="page" id="achievements">
+            <div class="page-intro">
+                <h2>Achievements</h2>
+                <p>Celebrate the progress you make along the way.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card"><p>Total XP</p><h2 id="achievement-xp">0</h2></div>
+                <div class="stat-card"><p>Tasks finished</p><h2 id="achievement-tasks">0</h2></div>
+                <div class="stat-card"><p>Goals finished</p><h2 id="achievement-goals">0</h2></div>
+                <div class="stat-card"><p>Focus sessions</p><h2 id="achievement-focus">0</h2></div>
+            </div>
+
+            <div class="content-card">
+                <h3>Your badges</h3>
+                <div id="badge-list" class="badge-grid"></div>
+            </div>
+        </section>
+
+        <!-- PROFILE STUDIO -->
+
+        <section class="page" id="profile">
+            <div class="page-intro">
+                <h2>Profile Studio</h2>
+                <p>Make your FlowUp space feel like yours.</p>
+            </div>
+
+            <div class="content-card">
+                <h3>Your profile</h3>
+
+                <div class="profile-form">
+                    <label>
+                        Display name
+                        <input id="profile-name" placeholder="Your name">
+                    </label>
+
+                    <label>
+                        Favorite color
+                        <input id="profile-color" type="color" value="#79b9e8">
+                    </label>
+
+                    <button class="primary-btn" id="profile-save">Save profile</button>
+                </div>
+
+                <div class="profile-preview">
+                    <div class="avatar" id="avatar-preview">F</div>
+                    <div>
+                        <h3 id="profile-preview-name">FlowUp member</h3>
+                        <p id="profile-preview-xp">0 XP earned</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
