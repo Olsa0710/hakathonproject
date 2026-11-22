@@ -1,509 +1,338 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowUp - To Do Planner</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowUp - Personal Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div class="app">
-
-    <aside class="sidebar">
-        <h1 class="logo">Flow<span>Up</span></h1>
-
-        <p class="menu-title">WORKSPACE</p>
-        <button class="nav-link active" data-page="dashboard"><i class="fa-solid fa-house"></i> Dashboard</button>
-        <button class="nav-link" data-page="tasks"><i class="fa-solid fa-list-check"></i> My Tasks</button>
-        <button class="nav-link" data-page="goals"><i class="fa-solid fa-bullseye"></i> Daily Goals</button>
-        <button class="nav-link" data-page="habits"><i class="fa-solid fa-calendar-check"></i> Habit Tracker</button>
-        <button class="nav-link" data-page="notes"><i class="fa-solid fa-note-sticky"></i> Quick Notes</button>
-
-        <p class="menu-title">PERSONAL GROWTH</p>
-        <button class="nav-link" data-page="vision"><i class="fa-solid fa-images"></i> Vision Board</button>
-        <button class="nav-link" data-page="sounds"><i class="fa-solid fa-headphones"></i> Focus Sounds</button>
-        <button class="nav-link" data-page="challenge"><i class="fa-solid fa-calendar-days"></i> 30-Day Challenge</button>
-        <button class="nav-link" data-page="reflection"><i class="fa-solid fa-book-open"></i> Weekly Reflection</button>
-        <button class="nav-link" data-page="lists"><i class="fa-solid fa-layer-group"></i> Smart Lists</button>
-        <button class="nav-link" data-page="milestones"><i class="fa-solid fa-flag"></i> Life Milestones</button>
-
-        <p class="menu-title">ACCOUNT</p>
-        <button class="nav-link" data-page="achievements"><i class="fa-solid fa-trophy"></i> Achievements</button>
-        <button class="nav-link" data-page="profile"><i class="fa-solid fa-user"></i> Profile Studio</button>
-
-        <div class="sidebar-bottom">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-            <h3>Small steps matter.</h3>
-            <p>Keep moving forward, one day at a time.</p>
-        </div>
-    </aside>
-
-    <main class="main-content">
-
-        <header class="topbar">
-            <div>
-                <h2 id="page-heading">Dashboard</h2>
-                <p id="today-date"></p>
-            </div>
-
-            <div class="topbar-actions">
-                <div class="xp-box">
-                    <i class="fa-solid fa-star"></i>
-                    <span id="top-xp">0</span> XP
-                </div>
-
-                <button class="theme-toggle" id="theme-toggle">
-                    <i class="fa-solid fa-moon"></i> Dark mode
-                </button>
-            </div>
-        </header>
-
-        <!-- DASHBOARD -->
-
-        <section class="page active" id="dashboard">
-
-            <div class="welcome-card">
-                <div>
-                    <p>YOUR DAILY SPACE</p>
-                    <h1>Make today count.</h1>
-                    <p>A little progress every day adds up to big results.</p>
-                </div>
-                <i class="fa-solid fa-cloud-sun welcome-icon"></i>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <i class="fa-solid fa-list-check"></i>
-                    <p>Total tasks</p>
-                    <h2 id="dash-total">0</h2>
-                </div>
-
-                <div class="stat-card">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <p>Completed</p>
-                    <h2 id="dash-completed">0</h2>
-                </div>
-
-                <div class="stat-card">
-                    <i class="fa-solid fa-bullseye"></i>
-                    <p>Daily goals</p>
-                    <h2 id="dash-goals">0/0</h2>
-                </div>
-
-                <div class="stat-card">
-                    <i class="fa-solid fa-fire"></i>
-                    <p>Habits done</p>
-                    <h2 id="dash-habits">0/0</h2>
-                </div>
-            </div>
-
-            <div class="dashboard-grid">
-
-                <div class="content-card">
-                    <div class="section-heading">
-                        <div>
-                            <h3>Focus timer</h3>
-                            <p>Give one thing your full attention.</p>
-                        </div>
-                        <button class="text-btn" data-open-page="sounds">Focus sounds</button>
-                    </div>
-
-                    <div class="timer-display" id="timer-display">25:00</div>
-                    <p class="timer-status" id="timer-status">Ready when you are</p>
-
-                    <div class="timer-options">
-                        <button class="timer-option selected" data-minutes="25">25 min</button>
-                        <button class="timer-option" data-minutes="15">15 min</button>
-                        <button class="timer-option" data-minutes="5">5 min</button>
-                    </div>
-
-                    <div class="button-row">
-                        <button class="primary-btn" id="timer-start">Start</button>
-                        <button class="secondary-btn" id="timer-reset">Reset</button>
-                    </div>
-                </div>
-
-                <div class="content-card">
-                    <h3>Today's progress</h3>
-                    <p>Your daily overview.</p>
-
-                    <p class="progress-label">
-                        Tasks completed
-                        <strong id="task-progress-text">0%</strong>
-                    </p>
-
-                    <div class="progress-bg">
-                        <div id="task-progress"></div>
-                    </div>
-
-                    <div class="glance-item">
-                        <i class="fa-solid fa-calendar-check"></i>
-                        <div>
-                            <strong>Build consistency</strong>
-                            <p>Check off your habits each day.</p>
-                        </div>
-                    </div>
-
-                    <div class="glance-item">
-                        <i class="fa-solid fa-star"></i>
-                        <div>
-                            <strong>Earn experience</strong>
-                            <p>Complete tasks and goals to earn XP.</p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="content-card">
-                <h3>Today's tasks</h3>
-                <div id="dashboard-task-list"></div>
-            </div>
-
-        </section>
-
-        <!-- MY TASKS -->
-
-        <section class="page" id="tasks">
-            <div class="page-intro">
-                <h2>My Tasks</h2>
-                <p>Organize your day and keep track of what matters.</p>
-            </div>
-
-            <div class="task-summary">
-                <div><span>Total tasks</span><strong id="task-total">0</strong></div>
-                <div><span>Completed</span><strong id="task-completed">0</strong></div>
-                <div><span>Remaining</span><strong id="task-remaining">0</strong></div>
-            </div>
-
-            <div class="content-card">
-                <h3>Add a new task</h3>
-                <form id="task-form" class="task-form">
-                    <input id="task-input" placeholder="What do you need to do?" required>
-                    <input id="task-date" type="date" required>
-                    <input id="task-time" type="time">
-
-                    <select id="task-priority">
-                        <option>Low</option>
-                        <option selected>Medium</option>
-                        <option>High</option>
-                    </select>
-
-                    <select id="task-category">
-                        <option>Personal</option>
-                        <option>School</option>
-                        <option>Work</option>
-                        <option>Health</option>
-                        <option>Other</option>
-                    </select>
-
-                    <button class="primary-btn">Add task</button>
-                </form>
-            </div>
-
-            <div class="content-card">
-                <div class="filter-row">
-                    <input id="task-search" placeholder="Search tasks...">
-
-                    <select id="task-filter">
-                        <option>All</option>
-                        <option>Active</option>
-                        <option>Completed</option>
-                    </select>
-
-                    <select id="priority-filter">
-                        <option>All</option>
-                        <option>High</option>
-                        <option>Medium</option>
-                        <option>Low</option>
-                    </select>
-                </div>
-
-                <div id="task-list"></div>
-            </div>
-        </section>
-
-        <!-- DAILY GOALS -->
-
-        <section class="page" id="goals">
-            <div class="page-intro">
-                <h2>Daily Goals</h2>
-                <p>Choose small challenges and earn XP as you complete them.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Suggested goals</h3>
-                <div id="goal-examples" class="goal-grid"></div>
-            </div>
-
-            <div class="content-card">
-                <h3>Your goals for today</h3>
-                <div id="goal-list"></div>
-            </div>
-        </section>
-
-        <!-- HABITS -->
-
-        <section class="page" id="habits">
-            <div class="page-intro">
-                <h2>Habit Tracker</h2>
-                <p>Consistency is built one checkmark at a time.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Add a habit</h3>
-
-                <form id="habit-form" class="inline-form">
-                    <input id="habit-input" placeholder="Example: Read for 10 minutes" required>
-                    <button class="primary-btn">Add habit</button>
-                </form>
-
-                <p class="habit-summary">
-                    <strong id="habit-count">0/0</strong>
-                    habits completed today
-                </p>
-
-                <div id="habit-list"></div>
-            </div>
-        </section>
-
-        <!-- QUICK NOTES -->
-
-        <section class="page" id="notes">
-            <div class="page-intro">
-                <h2>Quick Notes</h2>
-                <p>Save thoughts, reminders and ideas in one place.</p>
-            </div>
-
-            <div class="content-card">
-                <form id="note-form">
-                    <input id="note-title" placeholder="Note title" required>
-                    <textarea id="note-text" placeholder="Write your note..." required></textarea>
-                    <button class="primary-btn">Save note</button>
-                </form>
-
-                <div id="notes-list" class="notes-grid"></div>
-            </div>
-        </section>
-
-        <!-- VISION BOARD -->
-
-        <section class="page" id="vision">
-            <div class="page-intro">
-                <h2>Vision Board</h2>
-                <p>Collect the goals and ideas that inspire your future.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Add to your vision board</h3>
-
-                <form id="vision-form" class="task-form">
-                    <input id="vision-title" placeholder="Your vision or goal" required>
-                    <input id="vision-detail" placeholder="Why is it important?">
-                    <input id="vision-image" placeholder="Image URL (optional)">
-                    <button class="primary-btn">Add vision</button>
-                </form>
-            </div>
-
-            <div id="vision-list" class="vision-grid"></div>
-        </section>
-
-        <!-- FOCUS SOUNDS -->
-
-        <section class="page" id="sounds">
-            <div class="page-intro">
-                <h2>Focus Sounds</h2>
-                <p>Choose a calm background sound while you work.</p>
-            </div>
-
-            <div class="sound-grid">
-                <div class="content-card sound-card">
-                    <i class="fa-solid fa-cloud-rain"></i>
-                    <h3>Rain</h3>
-                    <p>Soft steady noise for quiet focus.</p>
-                    <button class="primary-btn sound-button" data-sound="rain">Play sound</button>
-                </div>
-
-                <div class="content-card sound-card">
-                    <i class="fa-solid fa-water"></i>
-                    <h3>Ocean</h3>
-                    <p>A gentle, wave-like background.</p>
-                    <button class="primary-btn sound-button" data-sound="ocean">Play sound</button>
-                </div>
-
-                <div class="content-card sound-card">
-                    <i class="fa-solid fa-wind"></i>
-                    <h3>White Noise</h3>
-                    <p>A steady sound to help mask distractions.</p>
-                    <button class="primary-btn sound-button" data-sound="noise">Play sound</button>
-                </div>
-            </div>
-
-            <div class="content-card">
-                <p id="sound-status">No sound playing.</p>
-                <button class="secondary-btn" id="sound-stop">Stop sounds</button>
-            </div>
-        </section>
-
-        <!-- 30 DAY CHALLENGE -->
-
-        <section class="page" id="challenge">
-            <div class="page-intro">
-                <h2>30-Day Challenge</h2>
-                <p>Pick one positive action and build momentum every day.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Your challenge</h3>
-
-                <form id="challenge-form" class="inline-form">
-                    <input id="challenge-name" placeholder="Example: Read every day" required>
-                    <button class="primary-btn">Start challenge</button>
-                </form>
-
-                <div id="challenge-area"></div>
-            </div>
-        </section>
-
-        <!-- WEEKLY REFLECTION -->
-
-        <section class="page" id="reflection">
-            <div class="page-intro">
-                <h2>Weekly Reflection</h2>
-                <p>Look back, notice your progress and plan your next steps.</p>
-            </div>
-
-            <div class="content-card">
-                <form id="reflection-form" class="reflection-form">
-                    <label>
-                        What went well this week?
-                        <textarea id="reflection-good" required></textarea>
-                    </label>
-
-                    <label>
-                        What was challenging?
-                        <textarea id="reflection-hard"></textarea>
-                    </label>
-
-                    <label>
-                        What do you want to focus on next week?
-                        <textarea id="reflection-next"></textarea>
-                    </label>
-
-                    <button class="primary-btn">Save reflection</button>
-                </form>
-            </div>
-
-            <div class="content-card">
-                <h3>Past reflections</h3>
-                <div id="reflection-list"></div>
-            </div>
-        </section>
-
-        <!-- SMART LISTS -->
-
-        <section class="page" id="lists">
-            <div class="page-intro">
-                <h2>Smart Lists</h2>
-                <p>Create custom lists for ideas, plans, books, errands and more.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Create a list</h3>
-
-                <form id="smart-list-form" class="inline-form">
-                    <input id="smart-list-name" placeholder="List name" required>
-                    <button class="primary-btn">Create list</button>
-                </form>
-
-                <div id="smart-lists"></div>
-            </div>
-        </section>
-
-        <!-- LIFE MILESTONES -->
-
-        <section class="page" id="milestones">
-            <div class="page-intro">
-                <h2>Life Milestones</h2>
-                <p>Keep meaningful achievements and future moments in one place.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Add a milestone</h3>
-
-                <form id="milestone-form" class="task-form">
-                    <input id="milestone-title" placeholder="Milestone title" required>
-                    <input id="milestone-date" type="date">
-                    <input id="milestone-detail" placeholder="A few details">
-                    <button class="primary-btn">Add milestone</button>
-                </form>
-
-                <div id="milestone-list"></div>
-            </div>
-        </section>
-
-        <!-- ACHIEVEMENTS -->
-
-        <section class="page" id="achievements">
-            <div class="page-intro">
-                <h2>Achievements</h2>
-                <p>Celebrate the progress you make along the way.</p>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card"><p>Total XP</p><h2 id="achievement-xp">0</h2></div>
-                <div class="stat-card"><p>Tasks finished</p><h2 id="achievement-tasks">0</h2></div>
-                <div class="stat-card"><p>Goals finished</p><h2 id="achievement-goals">0</h2></div>
-                <div class="stat-card"><p>Focus sessions</p><h2 id="achievement-focus">0</h2></div>
-            </div>
-
-            <div class="content-card">
-                <h3>Your badges</h3>
-                <div id="badge-list" class="badge-grid"></div>
-            </div>
-        </section>
-
-        <!-- PROFILE STUDIO -->
-
-        <section class="page" id="profile">
-            <div class="page-intro">
-                <h2>Profile Studio</h2>
-                <p>Make your FlowUp space feel like yours.</p>
-            </div>
-
-            <div class="content-card">
-                <h3>Your profile</h3>
-
-                <div class="profile-form">
-                    <label>
-                        Display name
-                        <input id="profile-name" placeholder="Your name">
-                    </label>
-
-                    <label>
-                        Favorite color
-                        <input id="profile-color" type="color" value="#79b9e8">
-                    </label>
-
-                    <button class="primary-btn" id="profile-save">Save profile</button>
-                </div>
-
-                <div class="profile-preview">
-                    <div class="avatar" id="avatar-preview">F</div>
-                    <div>
-                        <h3 id="profile-preview-name">FlowUp member</h3>
-                        <p id="profile-preview-xp">0 XP earned</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
+<aside class="sidebar" id="sidebar">
+ <div class="brand"><span class="brand-icon"><i class="fa-solid fa-seedling"></i></span>FlowUp<span class="brand-dot">.</span></div>
+ <div class="sidebar-label">MENU</div>
+ <nav class="nav-menu">
+  <button class="nav-link active" data-page="dashboard"><i class="fa-solid fa-house"></i>Dashboard</button>
+  <button class="nav-link" data-page="tasks"><i class="fa-solid fa-list-check"></i>My Tasks</button>
+  <button class="nav-link" data-page="goals"><i class="fa-solid fa-bullseye"></i>Daily Goals</button>
+  <button class="nav-link" data-page="vision"><i class="fa-solid fa-images"></i>Vision Board</button>
+  <button class="nav-link" data-page="future"><i class="fa-solid fa-envelope-open-text"></i>Future Me <span class="new-tag">NEW</span></button>
+  <button class="nav-link" data-page="sounds"><i class="fa-solid fa-headphones"></i>Focus Sounds</button>
+  <button class="nav-link" data-page="challenge"><i class="fa-solid fa-fire"></i>30 Day Challenge</button>
+  <button class="nav-link" data-page="reflection"><i class="fa-solid fa-book-open"></i>Reflection</button>
+  <button class="nav-link" data-page="smartlists"><i class="fa-solid fa-layer-group"></i>Smart Lists</button>
+  <button class="nav-link" data-page="achievements"><i class="fa-solid fa-trophy"></i>Achievements</button>
+  <button class="nav-link" data-page="profile"><i class="fa-solid fa-user"></i>My Profile</button>
+ </nav>
+ <div class="sidebar-bottom">
+  <div class="sidebar-quote"><i class="fa-solid fa-quote-left"></i><p>Small steps every day lead to big changes.</p></div>
+  <button class="nav-link" id="theme-toggle"><i class="fa-solid fa-moon"></i>Toggle Theme</button>
+ </div>
+</aside>
+
+<main class="main-content">
+<header class="topbar">
+ <button class="mobile-menu" id="mobile-menu"><i class="fa-solid fa-bars"></i></button>
+ <div><p class="topbar-date" id="current-date"></p><h2 id="page-heading">Dashboard</h2></div>
+ <div class="topbar-right">
+  <div class="xp-pill"><i class="fa-solid fa-star"></i> <span id="top-xp">0 XP</span></div>
+  <div class="avatar" id="top-avatar">F</div>
+ </div>
+</header>
+
+<!-- DASHBOARD -->
+<section class="page active" id="dashboard">
+ <div class="welcome-banner">
+  <div>
+   <span class="eyebrow">YOUR PERSONAL SPACE</span>
+   <h1>Let's make today <span>count.</span></h1>
+   <p id="welcome-message">A fresh start is waiting for you. Make it a good one!</p>
+   <button class="primary-btn" onclick="openPage('tasks')">View my tasks <i class="fa-solid fa-arrow-right"></i></button>
+  </div>
+  <div class="welcome-art"><i class="fa-solid fa-sun"></i><i class="fa-solid fa-sparkles"></i></div>
+ </div>
+
+ <div class="section-heading"><div><span class="eyebrow">YOUR PROGRESS</span><h2>Today's overview</h2></div></div>
+ <div class="stats-grid">
+  <div class="stat-card"><div class="stat-icon purple"><i class="fa-solid fa-list-check"></i></div><span>Tasks completed</span><strong id="stat-tasks">0</strong><small>Keep going!</small></div>
+  <div class="stat-card"><div class="stat-icon pink"><i class="fa-solid fa-bullseye"></i></div><span>Daily goals</span><strong id="stat-goals">0/0</strong><small>Today's progress</small></div>
+  <div class="stat-card"><div class="stat-icon yellow"><i class="fa-solid fa-star"></i></div><span>Total XP</span><strong id="stat-xp">0</strong><small>Your experience points</small></div>
+  <div class="stat-card"><div class="stat-icon green"><i class="fa-solid fa-fire"></i></div><span>Focus sessions</span><strong id="stat-focus">0</strong><small>Stay consistent</small></div>
+ </div>
+
+ <div class="dashboard-grid">
+  <div class="panel">
+   <div class="panel-heading"><div><span class="eyebrow">GET THINGS DONE</span><h3>Today's tasks</h3></div><button class="text-btn" onclick="openPage('tasks')">See all</button></div>
+   <div id="dashboard-tasks" class="compact-list"></div>
+  </div>
+  <div class="panel">
+   <div class="panel-heading"><div><span class="eyebrow">A LITTLE EVERY DAY</span><h3>Daily goals</h3></div><button class="text-btn" onclick="openPage('goals')">See all</button></div>
+   <div id="dashboard-goals"></div>
+  </div>
+ </div>
+
+ <div class="dashboard-extras">
+  <div class="panel daily-inspiration"><span class="eyebrow">A LITTLE REMINDER</span><h3 id="daily-quote">Believe in the person you are becoming.</h3><p>You don't need to have everything figured out. Just choose your next small step.</p></div>
+  <div class="panel mini-focus"><div class="mini-focus-icon"><i class="fa-solid fa-hourglass-half"></i></div><div><span class="eyebrow">TAKE A MOMENT</span><h3>25 minutes for yourself</h3><p>A focused session can make a big difference.</p><button class="text-btn" onclick="openPage('sounds')">Start focusing <i class="fa-solid fa-arrow-right"></i></button></div></div>
+  <div class="panel dashboard-progress"><span class="eyebrow">YOUR DAILY MOMENTUM</span><h3>Today's completion</h3><div class="progress-track"><div id="dashboard-progress-bar"></div></div><strong id="dashboard-progress-text">0% complete</strong><p class="muted">Every completed step counts.</p></div>
+  <div class="panel future-teaser"><i class="fa-solid fa-envelope-open-text"></i><span class="eyebrow">A NOTE TO TOMORROW</span><h3>Have you written to Future You?</h3><p>Save a message for a day worth remembering.</p><button class="text-btn" onclick="openPage('future')">Write a letter <i class="fa-solid fa-arrow-right"></i></button></div>
+ </div>
+</section>
+
+<!-- MY TASKS -->
+<section class="page" id="tasks">
+ <div class="page-intro"><span class="eyebrow">STAY ORGANIZED</span><h1>My Tasks</h1><p>Plan your day, stay focused and celebrate every completed step.</p></div>
+ <div class="task-summary">
+  <div><span>Total tasks</span><strong id="task-total">0</strong><small>Everything on your list</small></div>
+  <div><span>Completed</span><strong id="task-completed">0</strong><small>Things you've finished</small></div>
+  <div><span>Remaining</span><strong id="task-remaining">0</strong><small>One step at a time</small></div>
+ </div>
+ <div class="panel task-create-panel">
+  <div class="panel-heading"><div><span class="eyebrow">PLAN YOUR NEXT STEP</span><h3><i class="fa-solid fa-plus-circle"></i> Add a new task</h3></div></div>
+  <form id="task-form" class="task-form">
+   <input id="task-input" placeholder="What do you need to do?" required>
+   <select id="task-priority"><option>Normal</option><option>High</option><option>Medium</option><option>Low</option></select>
+   <input id="task-date" type="date">
+   <button class="primary-btn">Add task <i class="fa-solid fa-plus"></i></button>
+  </form>
+ </div>
+ <div class="task-toolbar">
+  <div><span class="eyebrow">YOUR WORKSPACE</span><h3>Task overview</h3></div>
+  <div class="task-filters">
+   <button class="filter-btn active" data-filter="all">All tasks</button>
+   <button class="filter-btn" data-filter="active">To do</button>
+   <button class="filter-btn" data-filter="completed">Completed</button>
+  </div>
+ </div>
+ <div class="panel"><div id="task-list" class="task-list"></div></div>
+ <div class="two-column">
+  <div class="panel"><div class="panel-heading"><div><span class="eyebrow">BUILD CONSISTENCY</span><h3><i class="fa-solid fa-repeat"></i> Habit Tracker</h3></div></div><form id="habit-form" class="inline-form"><input id="habit-input" placeholder="Add a habit..." required><button class="primary-btn">Add</button></form><div id="habit-list"></div></div>
+  <div class="panel"><div class="panel-heading"><div><span class="eyebrow">SAVE YOUR THOUGHTS</span><h3><i class="fa-solid fa-note-sticky"></i> Quick Notes</h3></div></div><form id="note-form"><textarea id="note-input" placeholder="Write down a quick thought..." required></textarea><button class="primary-btn">Save note</button></form><div id="note-list"></div></div>
+ </div>
+</section>
+
+<!-- DAILY GOALS -->
+<section class="page" id="goals">
+ <div class="page-intro"><span class="eyebrow">MAKE EVERY DAY COUNT</span><h1>Daily Goals</h1><p>Choose goals that fit your day. Small progress is still progress.</p></div>
+ <div class="goal-levels">
+  <div class="goal-level easy"><div class="level-top"><span class="level-dot"></span><div><h3>Easy goals</h3><p>Little wins for busy or low-energy days.</p></div><span class="level-badge">EASY</span></div><div class="suggestion-chips"><button class="suggestion" data-goal="Drink a glass of water">Drink water</button><button class="suggestion" data-goal="Make my bed">Make my bed</button><button class="suggestion" data-goal="Read 5 pages">Read 5 pages</button><button class="suggestion" data-goal="Tidy my desk for 5 minutes">Tidy my desk</button><button class="suggestion" data-goal="Write down one thing I'm grateful for">Gratitude note</button><button class="suggestion" data-goal="Prepare my school bag">Prepare my bag</button></div></div>
+  <div class="goal-level medium"><div class="level-top"><span class="level-dot"></span><div><h3>Medium goals</h3><p>A little more effort, still manageable.</p></div><span class="level-badge">MEDIUM</span></div><div class="suggestion-chips"><button class="suggestion" data-goal="Study for 30 minutes">Study 30 min</button><button class="suggestion" data-goal="Walk for 20 minutes">Walk 20 min</button><button class="suggestion" data-goal="Read for 20 minutes">Read 20 min</button><button class="suggestion" data-goal="Practice a new skill for 30 minutes">Practice a skill</button><button class="suggestion" data-goal="Organize one area of my room">Organize a space</button><button class="suggestion" data-goal="Review my notes">Review notes</button></div></div>
+  <div class="goal-level hard"><div class="level-top"><span class="level-dot"></span><div><h3>Hard goals</h3><p>For days when you're ready for a bigger challenge.</p></div><span class="level-badge">CHALLENGE</span></div><div class="suggestion-chips"><button class="suggestion" data-goal="Complete a 90-minute focused study session">Deep study session</button><button class="suggestion" data-goal="Finish my biggest task of the day">Finish my biggest task</button><button class="suggestion" data-goal="Complete a full room reset">Full room reset</button><button class="suggestion" data-goal="Work on a personal project for one hour">Project hour</button><button class="suggestion" data-goal="Plan the whole week ahead">Plan my week</button><button class="suggestion" data-goal="Finish a challenging assignment">Finish an assignment</button></div></div>
+ </div>
+ <div class="panel">
+  <div class="panel-heading"><div><span class="eyebrow">YOUR DAILY LIST</span><h3>Add a custom goal</h3></div></div>
+  <form id="goal-form" class="inline-form"><input id="goal-input" placeholder="What's your goal for today?" required><button class="primary-btn">Add goal <i class="fa-solid fa-plus"></i></button></form>
+  <div class="progress-info"><span>Daily progress</span><strong id="goal-progress-text">0%</strong></div>
+  <div class="progress-track"><div id="goal-progress-bar"></div></div>
+  <div id="goal-list"></div>
+ </div>
+</section>
+
+<!-- VISION BOARD: KEEP THIS SECTION AS PROVIDED -->
+<!-- VISION BOARD: THREE SECTIONS ONLY -->
+<section class="page" id="vision">
+ <div id="vision-home">
+  <div class="vision-hero">
+   <div class="vision-hero-copy">
+    <span class="eyebrow">DREAM IT. PLAN IT. BECOME IT.</span>
+    <h1>Your vision, <span>your future.</span></h1>
+    <p>Collect the ideas, places and moments that inspire the life you want to create.</p>
+    <div class="vision-hero-meta"><span><i class="fa-solid fa-images"></i> Visual inspiration</span><span><i class="fa-solid fa-sparkles"></i> Your own collection</span></div>
+   </div>
+   <div class="vision-hero-art" aria-hidden="true">
+    <div class="vision-orbit vision-orbit-one"></div><div class="vision-orbit vision-orbit-two"></div>
+    <div class="vision-hero-photo vision-photo-back"><img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=500" alt=""></div>
+    <div class="vision-hero-photo vision-photo-front"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=500" alt=""></div>
+    <span class="vision-sparkle sparkle-one">✦</span><span class="vision-sparkle sparkle-two">✧</span>
+   </div>
+  </div>
+  <div class="vision-section-heading">
+   <div><span class="eyebrow">01 / GET INSPIRED</span><h2>Explore the possibilities</h2><p>Start with an idea. Make it your own.</p></div>
+   <span class="vision-section-count">6 inspiration boards</span>
+  </div>
+  <div class="vision-grid vision-examples-grid">
+   <article class="vision-card" data-title="Academic Success" data-description="Create a future where learning opens new doors." data-steps="Create a study routine|Stay curious|Celebrate every achievement"><img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=900" alt="Study desk"><div class="vision-overlay"><span>01 / LEARNING</span><h3>Academic Success</h3><p>Build the future you imagine.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+   <article class="vision-card" data-title="Explore the World" data-description="Discover new places, cultures and experiences." data-steps="Make a travel wish list|Learn about different cultures|Save ideas for future trips"><img src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=900" alt="Travel landscape"><div class="vision-overlay"><span>02 / ADVENTURE</span><h3>Explore the World</h3><p>There is so much to discover.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+   <article class="vision-card" data-title="Personal Growth" data-description="Become more confident, creative and curious." data-steps="Read regularly|Try something new|Reflect on your progress"><img src="https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=900" alt="Journal"><div class="vision-overlay"><span>03 / MINDSET</span><h3>Personal Growth</h3><p>Become your best self.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+   <article class="vision-card" data-title="Healthy Lifestyle" data-description="Create a balanced lifestyle with movement and rest." data-steps="Make time for movement|Build a relaxing routine|Prioritize rest"><img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=900" alt="Healthy food"><div class="vision-overlay"><span>04 / WELLBEING</span><h3>Healthy Lifestyle</h3><p>Take care of yourself.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+   <article class="vision-card" data-title="Future Career" data-description="Work towards a future where your skills become opportunities." data-steps="Explore your interests|Practice useful skills|Set learning milestones"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900" alt="Workspace"><div class="vision-overlay"><span>05 / AMBITION</span><h3>Future Career</h3><p>Build something meaningful.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+   <article class="vision-card" data-title="Creative Life" data-description="Make room for imagination and projects that bring you joy." data-steps="Collect inspiration|Make something every week|Share your work"><img src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=900" alt="Creative writing"><div class="vision-overlay"><span>06 / CREATIVITY</span><h3>Creative Life</h3><p>Make ideas come alive.</p><span class="vision-card-hint">Open inspiration <i class="fa-solid fa-arrow-up-right-from-square"></i></span></div></article>
+  </div>
+  <div class="vision-create-banner">
+   <div class="vision-create-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+   <div class="vision-create-copy"><span class="eyebrow">02 / MAKE IT PERSONAL</span><h2>Your dreams deserve their own space.</h2><p>Create a board with your own title and all the photos that inspire you. There is no wrong way to dream.</p></div>
+   <button class="primary-btn vision-create-button" id="open-vision-studio"><i class="fa-solid fa-plus"></i> Create my vision board <i class="fa-solid fa-arrow-right"></i></button>
+  </div>
+  <div class="vision-section-heading vision-my-heading">
+   <div><span class="eyebrow">03 / YOUR PERSONAL COLLECTION</span><h2>My Vision Boards</h2><p>Your ideas, gathered in one beautiful place.</p></div>
+   <span class="vision-section-count"><i class="fa-regular fa-bookmark"></i> Saved by you</span>
+  </div>
+  <div class="vision-grid custom-vision-grid" id="my-visions"></div>
+  <div class="vision-bottom-note"><span class="vision-bottom-icon"><i class="fa-solid fa-quote-left"></i></span><div><h3>Keep your vision close.</h3><p>Small actions, repeated with care, can turn the things you imagine into things you experience.</p></div><span class="vision-bottom-star">✦</span></div>
+ </div>
+ <div id="vision-editor" class="vision-editor-page hidden">
+  <div class="vision-editor-top"><button type="button" class="vision-back-btn" id="vision-back"><i class="fa-solid fa-arrow-left"></i> Back to Vision Board</button><span class="vision-editor-label"><i class="fa-solid fa-wand-magic-sparkles"></i> YOUR PERSONAL STUDIO</span></div>
+  <div class="vision-editor-heading"><span class="eyebrow">CREATE SOMETHING THAT INSPIRES YOU</span><h1>Build your vision board.</h1><p>Give your board a name, add your favourite photos and create a little space for the future you imagine.</p></div>
+  <form id="vision-editor-form" class="vision-editor-layout">
+   <div class="panel vision-editor-fields">
+    <div class="vision-form-step"><span>01</span><div><strong>Name your vision</strong><small>Choose a title that means something to you.</small></div></div>
+    <label for="vision-editor-title">Vision board title</label>
+    <input id="vision-editor-title" type="text" placeholder="e.g. My dream life, Travel goals..." maxlength="70" required>
+    <div class="vision-form-step vision-form-step-spaced"><span>02</span><div><strong>Add your inspiration</strong><small>Select multiple photos from your device.</small></div></div>
+    <label class="vision-upload-box" for="vision-editor-upload"><i class="fa-solid fa-cloud-arrow-up"></i><strong>Choose your photos</strong><span>Click to upload multiple images · JPG, PNG, WEBP</span><em>Up to 25 photos</em></label>
+    <input id="vision-editor-upload" class="vision-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+    <div id="vision-upload-count" class="vision-upload-count">No photos selected yet</div>
+    <div id="vision-upload-preview" class="vision-upload-preview"></div>
+    <label for="vision-editor-description">A little note <span class="muted">(optional)</span></label>
+    <textarea id="vision-editor-description" rows="4" placeholder="What does this vision mean to you?"></textarea>
+    <div class="vision-editor-actions"><button type="button" class="secondary-btn" id="vision-cancel">Back</button><button type="submit" class="primary-btn vision-finish-button">Finished Board <i class="fa-solid fa-check"></i></button></div>
+   </div>
+   <aside class="vision-preview-column">
+    <span class="eyebrow">YOUR BOARD PREVIEW</span>
+    <article class="vision-preview-card" id="vision-preview-card">
+     <img id="vision-preview-image" alt="Your vision preview" class="hidden">
+     <div id="vision-preview-placeholder"><i class="fa-regular fa-images"></i><span>Your inspiration will appear here</span></div>
+     <div class="vision-preview-copy"><span>MY VISION BOARD</span><h2 id="vision-preview-title">Your vision title</h2><p id="vision-preview-description">Your photos will come together in one place.</p></div>
+    </article>
+    <p class="vision-preview-tip"><i class="fa-solid fa-lightbulb"></i> Choose photos that remind you of what you want to learn, create or experience.</p>
+   </aside>
+  </form>
+ </div>
+ <div id="vision-view" class="vision-view-page hidden">
+  <div class="vision-view-top"><button type="button" class="vision-back-btn" id="vision-view-back"><i class="fa-solid fa-arrow-left"></i> Back to Vision Boards</button><span class="vision-editor-label"><i class="fa-solid fa-sparkles"></i> YOUR DREAM SPACE</span></div>
+  <div class="vision-view-heading"><span class="eyebrow" id="vision-view-category">MY VISION</span><h1 id="vision-view-title">Your vision title</h1><p id="vision-view-description"></p></div>
+  <div class="vision-gallery-layout">
+   <div class="vision-main-photo">
+    <button type="button" class="gallery-arrow gallery-prev" id="vision-photo-prev"><i class="fa-solid fa-chevron-left"></i></button>
+    <img id="vision-main-image" src="" alt="Vision inspiration">
+    <button type="button" class="gallery-arrow gallery-next" id="vision-photo-next"><i class="fa-solid fa-chevron-right"></i></button>
+    <span class="vision-photo-counter" id="vision-photo-counter">1 / 1</span>
+   </div>
+   <div class="vision-gallery-side"><span class="eyebrow">YOUR INSPIRATION GALLERY</span><h3>Pictures that represent your dream</h3><p>Every picture is a little reminder of what you're working towards.</p><div id="vision-thumbnails" class="vision-thumbnails"></div></div>
+  </div>
+  <div class="vision-story-card"><div class="vision-story-icon"><i class="fa-solid fa-heart"></i></div><div><span class="eyebrow">THE STORY BEHIND YOUR VISION</span><h2>Why this matters to me</h2><p id="vision-view-full-description"></p></div></div>
+  <div class="vision-steps-section"><span class="eyebrow">TURN YOUR DREAM INTO ACTION</span><h2>My journey starts here</h2><p>Small steps can bring you closer to the future you imagine.</p><div id="vision-view-steps" class="vision-view-steps"></div></div>
+ </div>
+</section>
+
+<!-- FUTURE ME: KEEP THIS SECTION AS PROVIDED -->
+<section class="page" id="future">
+ <div class="page-intro"><span class="eyebrow">A MESSAGE THROUGH TIME</span><h1>Future Me ✦</h1><p>A quiet little space for your thoughts, dreams and promises to yourself.</p></div>
+ <div class="future-cover">
+  <div class="future-cover-copy"><span class="eyebrow">DEAR FUTURE ME...</span><h2>Some words deserve to wait for the right moment.</h2><p>Write a letter to the person you're becoming. Choose a date, seal it, and let time do its thing.</p><div class="future-steps"><span><i class="fa-solid fa-pen-nib"></i> Write</span><i class="fa-solid fa-arrow-right"></i><span><i class="fa-solid fa-calendar-heart"></i> Choose a date</span><i class="fa-solid fa-arrow-right"></i><span><i class="fa-solid fa-envelope"></i> Unlock</span></div></div>
+  <div class="future-cover-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="letter-illustration"><i class="fa-solid fa-envelope-open-text"></i><span>to my future self</span><b>✦</b></div></div>
+ </div>
+ <div class="future-layout">
+  <div class="panel future-editor"><div class="panel-heading"><div><span class="eyebrow">YOUR TIME CAPSULE</span><h3>Write your letter</h3></div><span class="private-label"><i class="fa-solid fa-lock"></i> Private</span></div>
+   <form id="future-form"><label for="future-title">Give your letter a title</label><input id="future-title" placeholder="A message for my future self..." required><label for="future-date">When should it unlock?</label><input id="future-date" type="date" required><label for="future-message">Your letter</label><textarea id="future-message" rows="9" placeholder="Dear future me, today I want you to remember..." required></textarea><div class="future-form-bottom"><span><i class="fa-solid fa-heart"></i> Be honest. Be kind to yourself.</span><button class="primary-btn">Seal my letter <i class="fa-solid fa-lock"></i></button></div></form>
+  </div>
+  <aside class="future-side-note"><i class="fa-solid fa-feather-pointed"></i><h3>A thought to keep</h3><p>One day, you'll look back and realize how much you've grown. Leave a little reminder for that day.</p><span>YOUR STORY IS STILL UNFOLDING</span></aside>
+ </div>
+ <div class="section-heading"><div><span class="eyebrow">YOUR TIME CAPSULES</span><h2>Letters to the future</h2></div></div><div id="future-list" class="future-grid"></div>
+</section>
+
+<!-- FOCUS SOUNDS -->
+<section class="page" id="sounds">
+ <div class="page-intro"><span class="eyebrow">FIND YOUR FLOW</span><h1>Focus Sounds</h1><p>Choose a peaceful atmosphere and give your attention some space.</p></div>
+ <div class="sound-intro panel"><div class="sound-intro-icon"><i class="fa-solid fa-headphones-simple"></i></div><div><span class="eyebrow">YOUR FOCUS SPACE</span><h2>Set the mood for your next session.</h2><p>Choose a built-in ambience or upload your own favourite audio.</p></div></div>
+ <div class="sound-grid">
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-cloud-rain"></i></div><h3>Rain</h3><p>Soft rainy ambience</p><button class="sound-btn" data-sound="rain">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-tree"></i></div><h3>Forest</h3><p>Nature and birds</p><button class="sound-btn" data-sound="forest">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-water"></i></div><h3>Ocean</h3><p>Relaxing ocean waves</p><button class="sound-btn" data-sound="ocean">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-wind"></i></div><h3>White Noise</h3><p>Steady background noise</p><button class="sound-btn" data-sound="white">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-fire"></i></div><h3>Cozy Fireplace</h3><p>Warm crackling ambience</p><button class="sound-btn" data-sound="fire">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-moon"></i></div><h3>Night Calm</h3><p>Soft peaceful night tones</p><button class="sound-btn" data-sound="night">Play sound</button></div>
+  <div class="sound-card"><div class="sound-icon"><i class="fa-solid fa-cloud"></i></div><h3>Gentle Wind</h3><p>A soft airy atmosphere</p><button class="sound-btn" data-sound="wind">Play sound</button></div>
+ </div>
+ <div class="panel upload-sound-panel"><div class="upload-sound-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div><div><span class="eyebrow">YOUR OWN SOUND</span><h3>Upload a sound you love</h3><p class="muted">Choose an audio file from your device. Supported: MP3, WAV, OGG, M4A.</p><input id="sound-upload" type="file" accept="audio/*"><audio id="custom-audio" controls class="custom-audio hidden"></audio><button id="remove-custom-sound" class="secondary-btn hidden">Remove upload</button></div></div>
+ <div class="panel timer-panel"><span class="eyebrow">POMODORO SESSION</span><h2>Time to focus</h2><div class="timer-display" id="timer-display">25:00</div><div class="timer-controls"><button class="primary-btn" id="timer-start">Start</button><button class="secondary-btn" id="timer-reset">Reset</button></div><p>25 minutes of focus. A little progress goes a long way.</p></div>
+</section>
+
+<!-- 30 DAY CHALLENGE: KEEP THIS SECTION AS PROVIDED -->
+<section class="page" id="challenge">
+ <div class="page-intro"><span class="eyebrow">BUILD YOUR CONSISTENCY</span><h1>30 Day Challenge</h1><p>Choose a challenge and show up for yourself every day.</p></div>
+ <div class="panel challenge-panel"><div class="challenge-header"><div><span class="eyebrow">YOUR MONTHLY JOURNEY</span><h2 id="challenge-title">Start a new challenge</h2><p id="challenge-description">Choose one small goal to practice for 30 days.</p></div><i class="fa-solid fa-fire challenge-fire"></i></div><form id="challenge-form" class="inline-form"><input id="challenge-input" placeholder="Example: Read for 15 minutes daily" required><button class="primary-btn">Start challenge</button></form><div class="challenge-progress"><strong id="challenge-count">0 / 30 days</strong><div class="progress-track"><div id="challenge-bar"></div></div></div><div id="challenge-days" class="challenge-days"></div><button class="secondary-btn hidden" id="challenge-reset">Reset challenge</button></div>
+ <div class="panel heatmap-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR CONSISTENCY OVER TIME</span><h3><i class="fa-solid fa-calendar-days"></i> Activity Heatmap</h3><p class="muted">A little square for every day you showed up.</p></div><span class="heatmap-total" id="heatmap-total">0 activities</span></div><div class="heatmap-summary"><div><strong id="heatmap-active-days">0</strong><span>Active days</span></div><div><strong id="heatmap-best-day">—</strong><span>Best day</span></div><div><strong id="heatmap-streak">0</strong><span>Day streak</span></div></div><div class="heatmap-months" id="heatmap-months"></div><div class="heatmap-wrap"><div class="heatmap-weekdays"><span>Mon</span><span>Wed</span><span>Fri</span></div><div id="activity-heatmap" class="activity-heatmap"></div></div><div class="heatmap-legend"><span>Less</span><i class="heat-level-0"></i><i class="heat-level-1"></i><i class="heat-level-2"></i><i class="heat-level-3"></i><i class="heat-level-4"></i><span>More</span></div></div>
+</section>
+
+<!-- REFLECTIONS: KEEP THIS SECTION AS PROVIDED -->
+<section class="page" id="reflection">
+ <div class="page-intro"><span class="eyebrow">PAUSE AND REFLECT</span><h1>Weekly Reflection</h1><p>Take a moment to notice how far you've come.</p></div>
+ <div class="panel"><form id="reflection-form"><label>What went well this week?</label><textarea id="reflection-good" placeholder="Celebrate your wins..."></textarea><label>What challenged you?</label><textarea id="reflection-hard" placeholder="What did you learn?"></textarea><label>What do you want to improve next week?</label><textarea id="reflection-next" placeholder="Set an intention..."></textarea><button class="primary-btn">Save reflection</button></form></div>
+ <div class="section-heading"><h2>Past reflections</h2></div><div id="reflection-list"></div>
+</section>
+
+<!-- SMART LISTS -->
+<section class="page" id="smartlists">
+ <div class="page-intro"><span class="eyebrow">KEEP EVERYTHING IN ONE PLACE</span><h1>Smart Lists</h1><p>Start with a ready-made list or build your own.</p></div>
+ <div class="smart-templates">
+  <div class="panel template-intro"><span class="eyebrow">QUICK START</span><h3>What would you like to organize?</h3><p class="muted">Choose a template and FlowUp will create the list for you.</p></div>
+  <button class="template-card" data-template="Study Checklist"><i class="fa-solid fa-graduation-cap"></i><strong>Study Checklist</strong><span>Assignments, revision, exam prep</span></button>
+  <button class="template-card" data-template="Weekly Reset"><i class="fa-solid fa-calendar-check"></i><strong>Weekly Reset</strong><span>Plan, tidy, prepare, recharge</span></button>
+  <button class="template-card" data-template="Shopping List"><i class="fa-solid fa-basket-shopping"></i><strong>Shopping List</strong><span>Things to buy and remember</span></button>
+  <button class="template-card" data-template="Books to Read"><i class="fa-solid fa-book-open"></i><strong>Books to Read</strong><span>Your reading wishlist</span></button>
+  <button class="template-card" data-template="Movie Watchlist"><i class="fa-solid fa-film"></i><strong>Movie Watchlist</strong><span>Films and shows for later</span></button>
+  <button class="template-card" data-template="Ideas & Projects"><i class="fa-solid fa-lightbulb"></i><strong>Ideas & Projects</strong><span>Save your creative ideas</span></button>
+ </div>
+ <div class="panel"><div class="panel-heading"><div><span class="eyebrow">YOUR OWN SYSTEM</span><h3>Create a custom list</h3></div></div><form id="smartlist-form" class="inline-form"><input id="smartlist-name" placeholder="Give your list a name..." required><button class="primary-btn">Create list <i class="fa-solid fa-plus"></i></button></form></div>
+ <div id="smartlist-container" class="smartlist-grid"></div>
+</section>
+
+<!-- ACHIEVEMENTS + THEME SHOP -->
+<section class="page" id="achievements">
+ <div class="page-intro"><span class="eyebrow">EVERY STEP COUNTS</span><h1>Achievements</h1><p>Look at all the progress you've made. Keep it going!</p></div>
+ <div class="stats-grid">
+  <div class="stat-card"><div class="stat-icon yellow"><i class="fa-solid fa-star"></i></div><span>Total XP</span><strong id="achievement-xp">0</strong><small>Earned through progress</small></div>
+  <div class="stat-card"><div class="stat-icon green"><i class="fa-solid fa-check"></i></div><span>Completed tasks</span><strong id="achievement-tasks">0</strong><small>Steps you've finished</small></div>
+  <div class="stat-card"><div class="stat-icon pink"><i class="fa-solid fa-stopwatch"></i></div><span>Focus sessions</span><strong id="achievement-focus">0</strong><small>Time well spent</small></div>
+  <div class="stat-card"><div class="stat-icon purple"><i class="fa-solid fa-medal"></i></div><span>Achievements</span><strong id="achievement-count">0</strong><small>Milestones unlocked</small></div>
+ </div>
+ <div class="panel"><div class="panel-heading"><div><span class="eyebrow">UNLOCK YOUR POTENTIAL</span><h3>Your achievements</h3></div></div><div id="achievement-list" class="achievement-grid"></div></div>
+ <div class="panel shop-panel">
+  <div class="shop-heading"><div><span class="eyebrow">MAKE FLOWUP YOURS</span><h2>Theme Shop</h2><p>Unlock beautiful themes using the XP you earn.</p></div><div class="shop-wallet"><i class="fa-solid fa-star"></i><strong id="shop-xp">0 XP</strong><small>YOUR BALANCE</small></div></div>
+  <div id="theme-store" class="theme-preview-grid"></div>
+ </div>
+</section>
+
+<!-- PROFILE STUDIO -->
+<section class="page" id="profile">
+ <div class="page-intro"><span class="eyebrow">YOUR PERSONAL SPACE</span><h1>Profile Studio</h1><p>Make FlowUp feel like your own little corner of the world.</p></div>
+ <div class="profile-studio-layout">
+  <div class="panel profile-showcase">
+   <span class="eyebrow">YOUR FLOWUP IDENTITY</span>
+   <div class="profile-avatar-large" id="profile-avatar">F</div>
+   <h2 id="profile-preview-name">FlowUp member</h2>
+   <p>Personal planner member</p>
+   <div class="profile-level"><i class="fa-solid fa-star"></i><strong id="profile-preview-xp">0 XP earned</strong></div>
+   <div id="profile-stats" class="profile-stats"></div>
+  </div>
+  <div class="panel profile-edit-panel">
+   <div class="panel-heading"><div><span class="eyebrow">PERSONALIZE YOUR SPACE</span><h3>Edit your profile</h3></div></div>
+   <form id="profile-form">
+    <label for="profile-name">Your display name</label><input id="profile-name" placeholder="Enter your name" maxlength="35">
+    <label for="profile-color">Choose your profile colour</label><input type="color" id="profile-color" value="#8585dc">
+    <div class="profile-color-options">
+     <button type="button" class="color-choice" data-color="#8585dc" style="--swatch:#8585dc" aria-label="Lavender"></button>
+     <button type="button" class="color-choice" data-color="#e69aba" style="--swatch:#e69aba" aria-label="Rose"></button>
+     <button type="button" class="color-choice" data-color="#72b797" style="--swatch:#72b797" aria-label="Mint"></button>
+     <button type="button" class="color-choice" data-color="#69a9c9" style="--swatch:#69a9c9" aria-label="Ocean"></button>
+     <button type="button" class="color-choice" data-color="#e5ae70" style="--swatch:#e5ae70" aria-label="Peach"></button>
+    </div>
+    <button class="primary-btn">Save profile <i class="fa-solid fa-check"></i></button>
+   </form>
+  </div>
+ </div>
+ <div class="panel profile-tips"><span class="eyebrow">A LITTLE REMINDER</span><h3>Your progress belongs to you.</h3><p>Every task, goal and focus session adds to your personal FlowUp journey. Keep building it at your own pace.</p></div>
+</section>
+
+<footer class="footer"><span>Made with <i class="fa-solid fa-heart"></i> and a little ambition.</span><strong>FlowUp.</strong></footer>
+</main>
 </div>
-
+<div class="toast" id="toast"></div>
 <script src="main.js"></script>
 </body>
 </html>

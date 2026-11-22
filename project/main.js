@@ -1,1249 +1,1814 @@
-
-// FLOWUP DATA
-
-let data = JSON.parse(localStorage.getItem("flowupData") || "{}");
-
-const defaults = {
-    xp: 0,
-    tasks: [],
-    goals: [],
-    habits: [],
-    notes: [],
-    theme: "baby",
-    focusSessions: 0,
-    vision: [],
-    challenge: null,
-    reflections: [],
-    smartLists: [],
-    milestones: [],
-    profile: { name: "", color: "#79b9e8" }
-};
-
-Object.keys(defaults).forEach(key => {
-    if (data[key] === undefined) data[key] = defaults[key];
-});
-
-data.xpHistory = data.xpHistory || {};
-
-const today = getToday();
-
-data.goals = data.goals.map(g => ({
-    ...g,
-    date: g.date || today,
-    xpGiven: !!g.xpGiven
-}));
-
-data.habits = data.habits.map(h => ({
-    ...h,
-    completed: h.date === today ? !!h.completed : false,
-    date: today
-}));
-
-let timerSeconds = 25 * 60;
-let timerInterval = null;
-let audioContext = null;
-let activeSound = null;
-let noiseNode = null;
-let soundGain = null;
+/* =========================================
+   FLOWUP - MAIN JAVASCRIPT
+   ========================================= */
 
 const $ = id => document.getElementById(id);
+const KEY = "flowupData";
 
+const defaults = {
+  xp: 0,
+  tasks: [],
+  goals: [],
+  habits: [],
+  notes: [],
+  vision: [],
+  future: [],
+  focusSessions: 0,
+  challenge: null,
+  reflections: [],
+  smartLists: [],
+  activity: {},
+  theme: "light",
+  unlockedThemes: ["Lavender"],
+  profile: { name: "", color: "#8585dc" }
+};
 
-// DATE FUNCTIONS
+let data = {};
+try {
+  data = { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") };
+} catch {
+  data = { ...defaults };
+}
 
-function getToday() {
-    const d = new Date();
+Object.keys(defaults).forEach(key => {
+  if (data[key] === undefined || data[key] === null) {
+    data[key] = structuredClone(defaults[key]);
+  }
+});
 
-    return d.getFullYear() + "-" +
-        String(d.getMonth() + 1).padStart(2, "0") + "-" +
-        String(d.getDate()).padStart(2, "0");
+if (!Array.isArray(data.smartLists)) {
+  data.smartLists = Object.entries(data.smartLists || {}).map(([name, items]) => ({
+    name,
+    items: Array.isArray(items) ? items : []
+  }));
+}
+
+if (!Array.isArray(data.unlockedThemes)) data.unlockedThemes = ["Lavender"];
+if (!data.profile) data.profile = { name: "", color: "#8585dc" };
+
+let currentFilter = "all";
+let timerSeconds = 25 * 60;
+let timerInterval = null;
+let activeAudio = null;
+let audioContext = null;
+let activeAudioNodes = [];
+let customAudioURL = null;
+let toastTimeout = null;
+
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+function toast(message) {
+  const el = $("toast");
+  if (!el) return;
+
+  el.textContent = message;
+  el.classList.add("show");
+
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+function today() {
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60000).toISOString().slice(0, 10);
+}
+
+function markActivity() {
+  const d = today();
+  data.activity[d] = (data.activity[d] || 0) + 1;
+  save();
+}
+
+function addXP(amount) {
+  data.xp = Math.max(0, (Number(data.xp) || 0) + amount);
+  save();
+  renderHeader();
+  renderAchievements();
+  renderProfile();
 }
 
 function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, c => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-    }[c]));
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
 }
 
-function saveData() {
-    localStorage.setItem("flowupData", JSON.stringify(data));
-    updateEverything();
+/* NAVIGATION */
+
+function openPage(id) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.toggle("active", page.id === id);
+  });
+
+  document.querySelectorAll(".nav-link[data-page]").forEach(button => {
+    button.classList.toggle("active", button.dataset.page === id);
+  });
+
+  const active = document.querySelector(`.nav-link[data-page="${id}"]`);
+  if ($("page-heading")) {
+    $("page-heading").textContent = active
+      ? active.textContent.trim().replace("NEW", "").trim()
+      : "Dashboard";
+  }
+
+  $("sidebar")?.classList.remove("open");
+
+  if (id === "dashboard") renderDashboard();
+  if (id === "tasks") renderTasks();
+  if (id === "goals") renderGoals();
+  if (id === "sounds") updateTimer();
+  if (id === "challenge") renderChallenge();
+  if (id === "reflection") renderReflections();
+  if (id === "smartlists") renderSmartLists();
+  if (id === "achievements") renderAchievements();
+  if (id === "profile") renderProfile();
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+window.openPage = openPage;
+
+function renderHeader() {
+  const xp = Number(data.xp) || 0;
+
+  if ($("top-xp")) $("top-xp").textContent = xp + " XP";
+  if ($("stat-xp")) $("stat-xp").textContent = xp;
+
+  const initial = (data.profile.name || "F").trim().charAt(0).toUpperCase();
+
+  if ($("top-avatar")) {
+    $("top-avatar").textContent = initial;
+    $("top-avatar").style.background = data.profile.color || "var(--primary)";
+  }
+
+  if ($("profile-avatar")) {
+    $("profile-avatar").textContent = initial;
+    $("profile-avatar").style.background = data.profile.color || "var(--primary)";
+  }
+
+  if ($("current-date")) {
+    $("current-date").textContent = new Date().toLocaleDateString(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric"
+    });
+  }
+
+  if ($("welcome-message") && data.profile.name) {
+    $("welcome-message").textContent =
+      `Welcome back, ${data.profile.name}. Make today a good one!`;
+  }
 }
 
-function awardXP(points) {
-    data.xp += points;
-
-    data.xpHistory[today] =
-        (data.xpHistory[today] || 0) + points;
-
-    saveData();
-}
-
-
-// PAGE NAVIGATION
-
-function showPage(page) {
-
-    document.querySelectorAll(".page").forEach(p => {
-        p.classList.toggle("active", p.id === page);
-    });
-
-    document.querySelectorAll(".nav-link").forEach(b => {
-        b.classList.toggle("active", b.dataset.page === page);
-    });
-
-    const button = document.querySelector(
-        '.nav-link[data-page="' + page + '"]'
-    );
-
-    $("page-heading").textContent =
-        button ? button.textContent.trim() : "Dashboard";
-}
-
-document.querySelectorAll(".nav-link").forEach(button => {
-    button.addEventListener("click", () => {
-        showPage(button.dataset.page);
-    });
-});
-
-document.querySelectorAll("[data-open-page]").forEach(button => {
-    button.addEventListener("click", () => {
-        showPage(button.dataset.openPage);
-    });
-});
-
-$("today-date").textContent = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric"
-});
-
-$("task-date").value = today;
-
-
-// MY TASKS
-
-$("task-form").addEventListener("submit", function(e) {
-
-    e.preventDefault();
-
-    data.tasks.push({
-        id: Date.now(),
-        title: $("task-input").value.trim(),
-        date: $("task-date").value,
-        time: $("task-time").value,
-        priority: $("task-priority").value,
-        category: $("task-category").value,
-        completed: false,
-        xpGiven: false
-    });
-
-    this.reset();
-    $("task-date").value = today;
-
-    saveData();
-});
-
+/* TASKS */
 
 function renderTasks() {
+  const list = $("task-list");
+  if (!list) return;
 
-    const list = $("task-list");
+  const filtered = data.tasks.filter(task => {
+    if (currentFilter === "active") return !task.done;
+    if (currentFilter === "completed") return !!task.done;
+    return true;
+  });
 
-    const search = $("task-search").value.toLowerCase();
-    const status = $("task-filter").value;
-    const priority = $("priority-filter").value;
+  list.innerHTML = "";
 
-    list.innerHTML = "";
+  if (!filtered.length) {
+    list.innerHTML = `
+      <div class="empty-message">
+        <i class="fa-regular fa-circle-check"></i>
+        <p>${currentFilter === "completed"
+          ? "No completed tasks yet. Your progress will appear here."
+          : currentFilter === "active"
+            ? "You have no tasks waiting. Enjoy the clear space!"
+            : "Your task list is empty. Add your first task above."}</p>
+      </div>`;
+  }
 
-    const filtered = data.tasks.filter(task => {
+  filtered.forEach(task => {
+    const row = document.createElement("div");
+    row.className = "task-item" + (task.done ? " completed" : "");
 
-        const matchesSearch =
-            (task.title || "").toLowerCase().includes(search);
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "task-check";
+    check.checked = !!task.done;
+    check.setAttribute("aria-label", "Complete task");
 
-        const matchesStatus =
-            status === "All" ||
-            (status === "Active" && !task.completed) ||
-            (status === "Completed" && task.completed);
+    const main = document.createElement("div");
+    main.className = "task-main";
 
-        const matchesPriority =
-            priority === "All" || task.priority === priority;
+    const title = document.createElement("strong");
+    title.textContent = task.text || task.title || "Untitled task";
 
-        return matchesSearch && matchesStatus && matchesPriority;
+    const meta = document.createElement("p");
+    const dateText = task.date ? task.date : "No date";
+    meta.textContent = `${dateText} · ${task.priority || "Normal"} priority`;
+
+    main.append(title, meta);
+
+    const priority = document.createElement("span");
+    priority.className = "priority " + (task.priority || "Normal");
+    priority.textContent = task.priority || "Normal";
+
+    const date = document.createElement("small");
+    date.className = "muted";
+    date.textContent = task.date || "";
+
+    const del = document.createElement("button");
+    del.className = "delete-btn";
+    del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    del.title = "Delete task";
+
+    check.addEventListener("change", () => {
+      task.done = check.checked;
+
+      if (task.done) {
+        addXP(10);
+        markActivity();
+        toast("+10 XP · Task completed!");
+      }
+
+      save();
+      renderTasks();
+      renderDashboard();
     });
 
-    if (filtered.length === 0) {
-        list.innerHTML =
-            '<p class="empty-message">No tasks found. Add a new task to get started.</p>';
-    }
-
-    filtered.forEach(task => {
-
-        const item = document.createElement("div");
-
-        item.className = "task-item" +
-            (task.completed ? " completed" : "");
-
-        item.innerHTML = `
-            <div class="task-main">
-                <strong>${escapeHTML(task.title)}</strong>
-                <p>
-                    ${escapeHTML(task.category)} ·
-                    ${escapeHTML(task.date)} ·
-                    ${escapeHTML(task.time || "No time")}
-                </p>
-            </div>
-
-            <div class="task-actions">
-
-                <span class="priority ${escapeHTML(task.priority)}">
-                    ${escapeHTML(task.priority)}
-                </span>
-
-                <input type="checkbox"
-                    aria-label="Complete task"
-                    ${task.completed ? "checked" : ""}>
-
-                <button class="delete-btn">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-
-            </div>
-        `;
-
-        item.querySelector("input").addEventListener("change", e => {
-            completeTask(task.id, e.target.checked);
-        });
-
-        item.querySelector(".delete-btn").addEventListener("click", () => {
-
-            data.tasks = data.tasks.filter(t => t.id !== task.id);
-
-            saveData();
-        });
-
-        list.appendChild(item);
+    del.addEventListener("click", () => {
+      data.tasks = data.tasks.filter(item => item.id !== task.id);
+      save();
+      renderTasks();
+      renderDashboard();
+      toast("Task removed.");
     });
 
-    $("task-total").textContent = data.tasks.length;
+    row.append(check, main, priority, date, del);
+    list.append(row);
+  });
 
-    $("task-completed").textContent =
-        data.tasks.filter(t => t.completed).length;
+  const total = data.tasks.length;
+  const completed = data.tasks.filter(task => task.done).length;
 
-    $("task-remaining").textContent =
-        data.tasks.filter(t => !t.completed).length;
+  if ($("task-total")) $("task-total").textContent = total;
+  if ($("task-completed")) $("task-completed").textContent = completed;
+  if ($("task-remaining")) $("task-remaining").textContent = total - completed;
 }
 
+$("task-form")?.addEventListener("submit", event => {
+  event.preventDefault();
 
-function completeTask(id, checked) {
+  const text = $("task-input").value.trim();
+  if (!text) return;
 
-    const task = data.tasks.find(t => t.id === id);
+  data.tasks.unshift({
+    id: Date.now(),
+    text,
+    priority: $("task-priority").value,
+    date: $("task-date").value,
+    done: false
+  });
 
-    if (!task || task.completed === checked) return;
-
-    task.completed = checked;
-
-    if (checked && !task.xpGiven) {
-
-        let points = 10;
-
-        if (task.priority === "Medium") points = 25;
-        if (task.priority === "High") points = 50;
-
-        task.xpGiven = true;
-
-        data.xp += points;
-
-        data.xpHistory[today] =
-            (data.xpHistory[today] || 0) + points;
-    }
-
-    saveData();
-}
-
-
-function renderDashboardTasks() {
-
-    const list = $("dashboard-task-list");
-
-    const items = data.tasks.filter(t => !t.completed).slice(0, 5);
-
-    if (!items.length) {
-        list.innerHTML =
-            '<p class="empty-message">You are all caught up. Add a task whenever you need one.</p>';
-        return;
-    }
-
-    list.innerHTML = items.map(t => `
-        <div class="glance-item">
-            <i class="fa-regular fa-circle"></i>
-            <div>
-                <strong>${escapeHTML(t.title)}</strong>
-                <p>${escapeHTML(t.date)} · ${escapeHTML(t.priority)} priority</p>
-            </div>
-        </div>
-    `).join("");
-}
-
-$("task-search").addEventListener("input", renderTasks);
-$("task-filter").addEventListener("change", renderTasks);
-$("priority-filter").addEventListener("change", renderTasks);
-
-
-// DAILY GOALS
-
-const goalExamples = [
-
-    ["Drink 2 glasses of water", "Easy", 10,
-        "Take a short break and drink water."],
-
-    ["Organize your desk", "Easy", 10,
-        "Make your workspace neat."],
-
-    ["Plan tomorrow's tasks", "Easy", 20,
-        "Prepare a simple plan."],
-
-    ["Read 10 pages", "Easy", 15,
-        "Spend some time reading."],
-
-    ["Take a short walk", "Easy", 15,
-        "Get some fresh air."],
-
-    ["Review school notes", "Medium", 30,
-        "Review what you learned."],
-
-    ["Read for 30 minutes", "Medium", 25,
-        "Spend time reading."],
-
-    ["Finish 3 important tasks", "Medium", 40,
-        "Complete three planned tasks."],
-
-    ["Practice a new skill", "Medium", 35,
-        "Learn something new."],
-
-    ["Complete all homework", "Hard", 50,
-        "Finish your planned homework."],
-
-    ["Complete a challenging assignment", "Hard", 80,
-        "Work through a difficult assignment."],
-
-    ["Make progress on a big project", "Hard", 100,
-        "Complete one meaningful project step."]
-];
-
-
-function renderGoals() {
-
-    $("goal-examples").innerHTML = goalExamples.map((g, i) => `
-        <div class="goal-card">
-            <h4>${g[0]}</h4>
-            <p>${g[3]}</p>
-            <small>${g[1]} · ${g[2]} XP</small>
-            <button class="secondary-btn" data-add-goal="${i}">
-                Add goal
-            </button>
-        </div>
-    `).join("");
-
-    document.querySelectorAll("[data-add-goal]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            const g = goalExamples[Number(button.dataset.addGoal)];
-
-            if (data.goals.some(x => x.name === g[0] && x.date === today)) {
-                alert("This goal is already on today's list.");
-                return;
-            }
-
-            data.goals.push({
-                id: Date.now(),
-                name: g[0],
-                difficulty: g[1],
-                xp: g[2],
-                date: today,
-                completed: false,
-                xpGiven: false
-            });
-
-            saveData();
-        });
-    });
-
-    const goals = data.goals.filter(g => g.date === today);
-
-    $("goal-list").innerHTML = goals.length
-        ? goals.map(g => `
-            <div class="habit-item ${g.completed ? "done" : ""}">
-                <label>
-                    <input type="checkbox"
-                        data-goal="${g.id}"
-                        ${g.completed ? "checked" : ""}>
-                    <span>${escapeHTML(g.name)} · ${g.xp} XP</span>
-                </label>
-
-                <button class="delete-btn" data-delete-goal="${g.id}">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </div>
-        `).join("")
-        : '<p class="empty-message">Choose a suggested goal to get started.</p>';
-
-    document.querySelectorAll("[data-goal]").forEach(checkbox => {
-
-        checkbox.addEventListener("change", () => {
-
-            const goal = data.goals.find(
-                g => g.id === Number(checkbox.dataset.goal)
-            );
-
-            if (!goal) return;
-
-            goal.completed = checkbox.checked;
-
-            if (checkbox.checked && !goal.xpGiven) {
-                goal.xpGiven = true;
-                data.xp += goal.xp;
-                data.xpHistory[today] =
-                    (data.xpHistory[today] || 0) + goal.xp;
-            }
-
-            saveData();
-        });
-    });
-
-    document.querySelectorAll("[data-delete-goal]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.goals = data.goals.filter(
-                g => g.id !== Number(button.dataset.deleteGoal)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// HABIT TRACKER
-
-$("habit-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.habits.push({
-        id: Date.now(),
-        name: $("habit-input").value.trim(),
-        date: today,
-        completed: false
-    });
-
-    e.target.reset();
-
-    saveData();
+  $("task-form").reset();
+  save();
+  renderTasks();
+  renderDashboard();
+  toast("Your new task has been added!");
 });
 
+document.querySelectorAll(".filter-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    currentFilter = button.dataset.filter;
 
-function renderHabits() {
-
-    const done = data.habits.filter(h => h.completed).length;
-
-    $("habit-count").textContent =
-        done + "/" + data.habits.length;
-
-    $("habit-list").innerHTML = data.habits.length
-        ? data.habits.map(h => `
-            <div class="habit-item ${h.completed ? "done" : ""}">
-                <label>
-                    <input type="checkbox"
-                        data-habit="${h.id}"
-                        ${h.completed ? "checked" : ""}>
-                    <span>${escapeHTML(h.name)}</span>
-                </label>
-
-                <button class="delete-btn" data-remove-habit="${h.id}">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
-            </div>
-        `).join("")
-        : '<p class="empty-message">Add a habit you want to practice regularly.</p>';
-
-    document.querySelectorAll("[data-habit]").forEach(checkbox => {
-
-        checkbox.addEventListener("change", () => {
-
-            const habit = data.habits.find(
-                h => h.id === Number(checkbox.dataset.habit)
-            );
-
-            if (!habit) return;
-
-            habit.completed = checkbox.checked;
-
-            if (checkbox.checked) {
-                awardXP(5);
-            } else {
-                saveData();
-            }
-        });
+    document.querySelectorAll(".filter-btn").forEach(item => {
+      item.classList.toggle("active", item === button);
     });
-
-    document.querySelectorAll("[data-remove-habit]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.habits = data.habits.filter(
-                h => h.id !== Number(button.dataset.removeHabit)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// QUICK NOTES
-
-$("note-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.notes.unshift({
-        id: Date.now(),
-        title: $("note-title").value.trim(),
-        text: $("note-text").value.trim()
-    });
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderNotes() {
-
-    $("notes-list").innerHTML = data.notes.length
-        ? data.notes.map(n => `
-            <div class="note-card">
-                <h4>${escapeHTML(n.title)}</h4>
-                <p>${escapeHTML(n.text)}</p>
-                <button class="text-btn" data-delete-note="${n.id}">
-                    Delete
-                </button>
-            </div>
-        `).join("")
-        : '<p class="empty-message">Your saved notes will appear here.</p>';
-
-    document.querySelectorAll("[data-delete-note]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.notes = data.notes.filter(
-                n => n.id !== Number(button.dataset.deleteNote)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// FOCUS TIMER
-
-function displayTimer() {
-
-    $("timer-display").textContent =
-        String(Math.floor(timerSeconds / 60)).padStart(2, "0") +
-        ":" +
-        String(timerSeconds % 60).padStart(2, "0");
-}
-
-
-document.querySelectorAll(".timer-option").forEach(button => {
-
-    button.addEventListener("click", () => {
-
-        clearInterval(timerInterval);
-        timerInterval = null;
-
-        timerSeconds = Number(button.dataset.minutes) * 60;
-
-        displayTimer();
-
-        $("timer-status").textContent = "Ready when you are";
-        $("timer-start").textContent = "Start";
-
-        document.querySelectorAll(".timer-option").forEach(b => {
-            b.classList.toggle("selected", b === button);
-        });
-    });
-});
-
-
-$("timer-start").addEventListener("click", () => {
-
-    if (timerInterval) {
-
-        clearInterval(timerInterval);
-        timerInterval = null;
-
-        $("timer-start").textContent = "Resume";
-        $("timer-status").textContent = "Paused";
-
-        return;
-    }
-
-    $("timer-start").textContent = "Pause";
-    $("timer-status").textContent = "Stay focused. You've got this.";
-
-    timerInterval = setInterval(() => {
-
-        timerSeconds--;
-
-        displayTimer();
-
-        if (timerSeconds <= 0) {
-
-            clearInterval(timerInterval);
-            timerInterval = null;
-
-            $("timer-start").textContent = "Start";
-            $("timer-status").textContent = "Focus session complete!";
-
-            data.focusSessions++;
-
-            awardXP(20);
-        }
-
-    }, 1000);
-});
-
-
-$("timer-reset").addEventListener("click", () => {
-
-    clearInterval(timerInterval);
-    timerInterval = null;
-
-    timerSeconds =
-        Number(document.querySelector(".timer-option.selected").dataset.minutes) * 60;
-
-    displayTimer();
-
-    $("timer-start").textContent = "Start";
-    $("timer-status").textContent = "Ready when you are";
-});
-
-
-// VISION BOARD
-
-$("vision-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.vision.push({
-        id: Date.now(),
-        title: $("vision-title").value.trim(),
-        detail: $("vision-detail").value.trim(),
-        image: $("vision-image").value.trim()
-    });
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderVision() {
-
-    $("vision-list").innerHTML = data.vision.length
-        ? data.vision.map(v => `
-            <div class="vision-card">
-
-                ${v.image && /^https?:\/\//i.test(v.image)
-                    ? `<img src="${escapeHTML(v.image)}" alt="">`
-                    : ""}
-
-                <h3>${escapeHTML(v.title)}</h3>
-                <p>${escapeHTML(v.detail)}</p>
-
-                <button class="text-btn" data-delete-vision="${v.id}">
-                    Remove
-                </button>
-
-            </div>
-        `).join("")
-        : '<p class="empty-message">Add a goal or idea that inspires you.</p>';
-
-    document.querySelectorAll("[data-delete-vision]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.vision = data.vision.filter(
-                v => v.id !== Number(button.dataset.deleteVision)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// FOCUS SOUNDS
-
-async function playSound(type) {
-
-    stopSound();
-
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-
-    if (!AudioCtx) {
-        $("sound-status").textContent =
-            "Audio is not supported in this browser.";
-        return;
-    }
-
-    audioContext = new AudioCtx();
-
-    await audioContext.resume();
-
-    soundGain = audioContext.createGain();
-    soundGain.gain.value = 0.08;
-    soundGain.connect(audioContext.destination);
-
-    const length = audioContext.sampleRate * 2;
-
-    const buffer = audioContext.createBuffer(
-        1,
-        length,
-        audioContext.sampleRate
-    );
-
-    const channel = buffer.getChannelData(0);
-
-    let last = 0;
-
-    for (let i = 0; i < length; i++) {
-
-        const white = Math.random() * 2 - 1;
-
-        last = type === "ocean"
-            ? last * 0.96 + white * 0.04
-            : white;
-
-        channel[i] = type === "rain"
-            ? white * 0.35
-            : type === "ocean"
-                ? last * 2
-                : white * 0.25;
-    }
-
-    noiseNode = audioContext.createBufferSource();
-    noiseNode.buffer = buffer;
-    noiseNode.loop = true;
-
-    const filter = audioContext.createBiquadFilter();
-
-    filter.type = type === "ocean"
-        ? "lowpass"
-        : type === "rain"
-            ? "highpass"
-            : "lowpass";
-
-    filter.frequency.value = type === "ocean"
-        ? 450
-        : type === "rain"
-            ? 1800
-            : 900;
-
-    noiseNode.connect(filter);
-    filter.connect(soundGain);
-
-    noiseNode.start();
-
-    activeSound = type;
-
-    $("sound-status").textContent = "Playing: " + type;
-
-    document.querySelectorAll(".sound-button").forEach(button => {
-        button.textContent =
-            button.dataset.sound === type ? "Playing..." : "Play sound";
-    });
-}
-
-
-function stopSound() {
-
-    if (noiseNode) {
-        try {
-            noiseNode.stop();
-        } catch (e) {}
-
-        noiseNode = null;
-    }
-
-    if (audioContext) {
-        audioContext.close();
-        audioContext = null;
-    }
-
-    activeSound = null;
-
-    if ($("sound-status")) {
-        $("sound-status").textContent = "No sound playing.";
-    }
-
-    document.querySelectorAll(".sound-button").forEach(button => {
-        button.textContent = "Play sound";
-    });
-}
-
-
-document.querySelectorAll(".sound-button").forEach(button => {
-
-    button.addEventListener("click", () => {
-
-        if (activeSound === button.dataset.sound) {
-            stopSound();
-        } else {
-            playSound(button.dataset.sound);
-        }
-    });
-});
-
-$("sound-stop").addEventListener("click", stopSound);
-
-
-// 30 DAY CHALLENGE
-
-$("challenge-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    if (data.challenge && !confirm("Replace your current challenge?")) {
-        return;
-    }
-
-    data.challenge = {
-        name: $("challenge-name").value.trim(),
-        start: today,
-        done: []
-    };
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderChallenge() {
-
-    const area = $("challenge-area");
-
-    if (!data.challenge) {
-        area.innerHTML =
-            '<p class="empty-message">Create a 30-day challenge to begin.</p>';
-        return;
-    }
-
-    const done = data.challenge.done.length;
-
-    area.innerHTML = `
-        <div class="challenge-progress">
-            <h3>${escapeHTML(data.challenge.name)}</h3>
-            <p>${done}/30 days completed</p>
-
-            <div class="progress-bg">
-                <div style="width:${done / 30 * 100}%"></div>
-            </div>
-        </div>
-
-        <div class="challenge-days">
-            ${Array.from({length: 30}, (_, i) => `
-                <button class="challenge-day ${data.challenge.done.includes(i) ? "done" : ""}"
-                    data-challenge-day="${i}">
-                    ${i + 1}
-                </button>
-            `).join("")}
-        </div>
-
-        <p class="small-note">
-            Select a day to mark it complete.
-        </p>
-    `;
-
-    document.querySelectorAll("[data-challenge-day]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            const day = Number(button.dataset.challengeDay);
-
-            if (data.challenge.done.includes(day)) {
-
-                data.challenge.done =
-                    data.challenge.done.filter(x => x !== day);
-
-            } else {
-
-                data.challenge.done.push(day);
-
-                awardXP(10);
-                return;
-            }
-
-            saveData();
-        });
-    });
-}
-
-
-// WEEKLY REFLECTION
-
-$("reflection-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.reflections.unshift({
-        id: Date.now(),
-        date: today,
-        good: $("reflection-good").value,
-        hard: $("reflection-hard").value,
-        next: $("reflection-next").value
-    });
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderReflections() {
-
-    $("reflection-list").innerHTML = data.reflections.length
-        ? data.reflections.map(r => `
-            <div class="reflection-item">
-                <strong>${escapeHTML(r.date)}</strong>
-
-                <p><b>Went well:</b> ${escapeHTML(r.good)}</p>
-                <p><b>Challenge:</b> ${escapeHTML(r.hard)}</p>
-                <p><b>Next week:</b> ${escapeHTML(r.next)}</p>
-
-                <button class="text-btn" data-delete-reflection="${r.id}">
-                    Delete
-                </button>
-            </div>
-        `).join("")
-        : '<p class="empty-message">Your reflections will be saved here.</p>';
-
-    document.querySelectorAll("[data-delete-reflection]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.reflections = data.reflections.filter(
-                r => r.id !== Number(button.dataset.deleteReflection)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// SMART LISTS
-
-$("smart-list-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.smartLists.push({
-        id: Date.now(),
-        name: $("smart-list-name").value.trim(),
-        items: []
-    });
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderSmartLists() {
-
-    $("smart-lists").innerHTML = data.smartLists.length
-        ? data.smartLists.map(list => `
-            <div class="smart-list">
-
-                <div class="smart-list-head">
-                    <strong>${escapeHTML(list.name)}</strong>
-
-                    <button class="delete-btn" data-delete-list="${list.id}">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-
-                <div class="smart-list-items">
-                    ${list.items.map((item, i) => `
-                        <label>
-                            <input type="checkbox"
-                                data-list-check="${list.id}:${i}"
-                                ${item.done ? "checked" : ""}>
-                            <span>${escapeHTML(item.text)}</span>
-                        </label>
-                    `).join("")}
-                </div>
-
-                <form class="smart-add" data-list-form="${list.id}">
-                    <input name="item" placeholder="Add an item..." required>
-                    <button class="secondary-btn">Add</button>
-                </form>
-
-            </div>
-        `).join("")
-        : '<p class="empty-message">Create your first custom list.</p>';
-
-    document.querySelectorAll("[data-delete-list]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.smartLists = data.smartLists.filter(
-                l => l.id !== Number(button.dataset.deleteList)
-            );
-
-            saveData();
-        });
-    });
-
-    document.querySelectorAll("[data-list-form]").forEach(form => {
-
-        form.addEventListener("submit", e => {
-
-            e.preventDefault();
-
-            const list = data.smartLists.find(
-                l => l.id === Number(form.dataset.listForm)
-            );
-
-            const input = form.querySelector("input");
-
-            if (list && input.value.trim()) {
-                list.items.push({
-                    text: input.value.trim(),
-                    done: false
-                });
-            }
-
-            saveData();
-        });
-    });
-
-    document.querySelectorAll("[data-list-check]").forEach(checkbox => {
-
-        checkbox.addEventListener("change", () => {
-
-            const [id, index] = checkbox.dataset.listCheck.split(":");
-
-            const list = data.smartLists.find(
-                l => l.id === Number(id)
-            );
-
-            if (list && list.items[index]) {
-                list.items[index].done = checkbox.checked;
-            }
-
-            saveData();
-        });
-    });
-}
-
-
-// LIFE MILESTONES
-
-$("milestone-form").addEventListener("submit", e => {
-
-    e.preventDefault();
-
-    data.milestones.push({
-        id: Date.now(),
-        title: $("milestone-title").value.trim(),
-        date: $("milestone-date").value,
-        detail: $("milestone-detail").value.trim()
-    });
-
-    e.target.reset();
-
-    saveData();
-});
-
-
-function renderMilestones() {
-
-    $("milestone-list").innerHTML = data.milestones.length
-        ? data.milestones.slice().sort((a, b) =>
-            (a.date || "9999").localeCompare(b.date || "9999")
-        ).map(m => `
-            <div class="milestone-item">
-                <strong>${escapeHTML(m.title)}</strong>
-                <p>${escapeHTML(m.date || "Date not set")} · ${escapeHTML(m.detail)}</p>
-
-                <button class="text-btn" data-delete-milestone="${m.id}">
-                    Remove
-                </button>
-            </div>
-        `).join("")
-        : '<p class="empty-message">Your milestones will appear here.</p>';
-
-    document.querySelectorAll("[data-delete-milestone]").forEach(button => {
-
-        button.addEventListener("click", () => {
-
-            data.milestones = data.milestones.filter(
-                m => m.id !== Number(button.dataset.deleteMilestone)
-            );
-
-            saveData();
-        });
-    });
-}
-
-
-// PROFILE STUDIO
-
-function renderProfile() {
-
-    $("profile-name").value = data.profile.name || "";
-    $("profile-color").value = data.profile.color || "#79b9e8";
-
-    $("profile-preview-name").textContent =
-        data.profile.name || "FlowUp member";
-
-    $("profile-preview-xp").textContent =
-        data.xp + " XP earned";
-
-    $("avatar-preview").textContent =
-        (data.profile.name || "F").charAt(0).toUpperCase();
-
-    $("avatar-preview").style.background =
-        data.profile.color || "#79b9e8";
-}
-
-
-$("profile-save").addEventListener("click", () => {
-
-    data.profile = {
-        name: $("profile-name").value.trim(),
-        color: $("profile-color").value
-    };
-
-    saveData();
-});
-
-
-// DARK MODE
-
-function applyTheme() {
-
-    document.body.classList.toggle(
-        "dark",
-        data.theme === "dark"
-    );
-
-    $("theme-toggle").innerHTML =
-        data.theme === "dark"
-            ? '<i class="fa-solid fa-sun"></i> Light mode'
-            : '<i class="fa-solid fa-moon"></i> Dark mode';
-}
-
-
-$("theme-toggle").addEventListener("click", () => {
-
-    data.theme = data.theme === "dark" ? "baby" : "dark";
-
-    applyTheme();
-
-    localStorage.setItem("flowupData", JSON.stringify(data));
-});
-
-
-// ACHIEVEMENTS
-
-function renderAchievements() {
-
-    const completed = data.tasks.filter(t => t.completed).length;
-    const goals = data.goals.filter(g => g.completed).length;
-
-    $("achievement-xp").textContent = data.xp;
-    $("achievement-tasks").textContent = completed;
-    $("achievement-goals").textContent = goals;
-    $("achievement-focus").textContent = data.focusSessions;
-
-    const badges = [
-        ["First step", completed >= 1, "Complete your first task."],
-        ["Task builder", completed >= 10, "Complete 10 tasks."],
-        ["Goal getter", goals >= 5, "Complete 5 daily goals."],
-        ["Focus starter", data.focusSessions >= 1, "Finish a focus session."],
-        ["XP collector", data.xp >= 100, "Earn 100 XP."]
-    ];
-
-    $("badge-list").innerHTML = badges.map(b => `
-        <div class="badge-card">
-            <i class="fa-solid ${b[1] ? "fa-medal" : "fa-lock"}"></i>
-            <h4>${b[0]}</h4>
-            <p>${b[1] ? "Unlocked" : "Locked"} · ${b[2]}</p>
-        </div>
-    `).join("");
-}
-
-
-// UPDATE EVERYTHING
-
-function updateEverything() {
-
-    $("top-xp").textContent = data.xp;
-
-    const completed = data.tasks.filter(t => t.completed).length;
-    const total = data.tasks.length;
-
-    $("dash-total").textContent = total;
-    $("dash-completed").textContent = completed;
-
-    const goals = data.goals.filter(g => g.date === today);
-    const goalDone = goals.filter(g => g.completed).length;
-
-    $("dash-goals").textContent =
-        goalDone + "/" + goals.length;
-
-    $("dash-habits").textContent =
-        data.habits.filter(h => h.completed).length +
-        "/" + data.habits.length;
-
-    const percent = total
-        ? Math.round(completed / total * 100)
-        : 0;
-
-    $("task-progress").style.width = percent + "%";
-    $("task-progress-text").textContent = percent + "%";
 
     renderTasks();
-    renderDashboardTasks();
-    renderGoals();
-    renderHabits();
-    renderNotes();
-    renderVision();
-    renderChallenge();
-    renderReflections();
-    renderSmartLists();
-    renderMilestones();
-    renderAchievements();
-    renderProfile();
+  });
+});
+
+/* DAILY GOALS */
+
+function renderGoals() {
+  const list = $("goal-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!data.goals.length) {
+    list.innerHTML = `
+      <div class="empty-message">
+        <i class="fa-solid fa-bullseye"></i>
+        <p>Your goals will appear here. Choose one of the suggestions or add your own.</p>
+      </div>`;
+  }
+
+  data.goals.forEach(goal => {
+    const row = document.createElement("div");
+    row.className = "goal-item" + (goal.done ? " completed" : "");
+
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = !!goal.done;
+    check.setAttribute("aria-label", "Complete goal");
+
+    const text = document.createElement("span");
+    text.textContent = goal.text;
+
+    const del = document.createElement("button");
+    del.className = "icon-btn";
+    del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    del.title = "Delete goal";
+
+    check.addEventListener("change", () => {
+      goal.done = check.checked;
+
+      if (goal.done) {
+        addXP(5);
+        markActivity();
+        toast("+5 XP · Goal completed!");
+      }
+
+      save();
+      renderGoals();
+      renderDashboard();
+    });
+
+    del.addEventListener("click", () => {
+      data.goals = data.goals.filter(item => item.id !== goal.id);
+      save();
+      renderGoals();
+      renderDashboard();
+    });
+
+    row.append(check, text, del);
+    list.append(row);
+  });
+
+  const done = data.goals.filter(goal => goal.done).length;
+  const total = data.goals.length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+
+  if ($("goal-progress-text")) $("goal-progress-text").textContent = pct + "%";
+  if ($("goal-progress-bar")) $("goal-progress-bar").style.width = pct + "%";
 }
 
+$("goal-form")?.addEventListener("submit", event => {
+  event.preventDefault();
 
-// INITIALIZE
+  const text = $("goal-input").value.trim();
+  if (!text) return;
 
-applyTheme();
-displayTimer();
-updateEverything();
+  if (data.goals.some(goal => goal.text.toLowerCase() === text.toLowerCase() && !goal.done)) {
+    toast("This goal is already on your list.");
+    return;
+  }
+
+  data.goals.push({ id: Date.now(), text, done: false });
+  $("goal-form").reset();
+  save();
+  renderGoals();
+  renderDashboard();
+  toast("Daily goal added!");
+});
+
+document.querySelectorAll(".suggestion").forEach(button => {
+  button.addEventListener("click", () => {
+    const text = button.dataset.goal;
+    if (!text) return;
+
+    if (data.goals.some(goal => goal.text === text && !goal.done)) {
+      toast("This goal is already on your list.");
+      return;
+    }
+
+    data.goals.push({ id: Date.now(), text, done: false });
+    save();
+    renderGoals();
+    renderDashboard();
+    toast("Goal added to your daily list!");
+  });
+});
+
+/* DASHBOARD */
+
+function renderDashboard() {
+  const doneTasks = data.tasks.filter(task => task.done).length;
+  const doneGoals = data.goals.filter(goal => goal.done).length;
+
+  if ($("stat-tasks")) $("stat-tasks").textContent = doneTasks;
+  if ($("stat-goals")) $("stat-goals").textContent = `${doneGoals}/${data.goals.length}`;
+  if ($("stat-focus")) $("stat-focus").textContent = data.focusSessions || 0;
+  if ($("stat-xp")) $("(" + "stat-xp" + ")");
+
+  const taskWrap = $("dashboard-tasks");
+
+  if (taskWrap) {
+    taskWrap.innerHTML = "";
+    const items = data.tasks.filter(task => !task.done).slice(0, 5);
+
+    if (!items.length) {
+      taskWrap.innerHTML = '<p class="empty-message">You are all caught up. Add a task whenever you need one.</p>';
+    }
+
+    items.forEach(task => {
+      const item = document.createElement("div");
+      item.className = "compact-item";
+      item.textContent = task.text;
+      taskWrap.append(item);
+    });
+  }
+
+  const goalWrap = $("dashboard-goals");
+
+  if (goalWrap) {
+    goalWrap.innerHTML = "";
+    const items = data.goals.slice(0, 5);
+
+    if (!items.length) {
+      goalWrap.innerHTML = '<p class="empty-message">Add a goal to see your daily progress here.</p>';
+    }
+
+    items.forEach(goal => {
+      const item = document.createElement("div");
+      item.className = "compact-item";
+      item.textContent = (goal.done ? "✓ " : "") + goal.text;
+      goalWrap.append(item);
+    });
+  }
+
+  const total = data.tasks.length + data.goals.length;
+  const completed = doneTasks + doneGoals;
+  const pct = total ? Math.round(completed / total * 100) : 0;
+
+  if ($("dashboard-progress-bar")) {
+    $("dashboard-progress-bar").style.width = pct + "%";
+  }
+
+  if ($("dashboard-progress-text")) {
+    $("dashboard-progress-text").textContent = pct + "% complete";
+  }
+
+  renderHeader();
+}
+
+/* HABITS */
+
+function renderHabits() {
+  const list = $("habit-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!data.habits.length) {
+    list.innerHTML = '<p class="empty-message">Your habits will appear here.</p>';
+    return;
+  }
+
+  data.habits.forEach(habit => {
+    const row = document.createElement("div");
+    row.className = "goal-item" + (habit.done ? " completed" : "");
+
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.checked = !!habit.done;
+
+    const text = document.createElement("span");
+    text.textContent = habit.text;
+
+    const del = document.createElement("button");
+    del.className = "icon-btn";
+    del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+    check.addEventListener("change", () => {
+      habit.done = check.checked;
+      if (habit.done) {
+        addXP(3);
+        markActivity();
+      }
+      save();
+      renderHabits();
+    });
+
+    del.addEventListener("click", () => {
+      data.habits = data.habits.filter(item => item.id !== habit.id);
+      save();
+      renderHabits();
+    });
+
+    row.append(check, text, del);
+    list.append(row);
+  });
+}
+
+$("habit-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+  const text = $("habit-input").value.trim();
+  if (!text) return;
+
+  data.habits.push({ id: Date.now(), text, done: false });
+  $("habit-form").reset();
+  save();
+  renderHabits();
+  toast("Habit added!");
+});
+
+/* QUICK NOTES */
+
+function renderNotes() {
+  const list = $("note-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!data.notes.length) {
+    list.innerHTML = '<p class="empty-message">Your saved notes will appear here.</p>';
+    return;
+  }
+
+  data.notes.forEach(note => {
+    const card = document.createElement("div");
+    card.className = "note-card";
+
+    const text = document.createElement("span");
+    text.textContent = note.text;
+
+    const del = document.createElement("button");
+    del.className = "icon-btn";
+    del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+    del.addEventListener("click", () => {
+      data.notes = data.notes.filter(item => item.id !== note.id);
+      save();
+      renderNotes();
+    });
+
+    card.append(text, del);
+    list.append(card);
+  });
+}
+
+$("note-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+  const text = $("note-input").value.trim();
+  if (!text) return;
+
+  data.notes.unshift({ id: Date.now(), text });
+  $("note-form").reset();
+  save();
+  renderNotes();
+  toast("Note saved!");
+});
+
+/* VISION BOARD
+   Existing feature: example cards, multiple image upload,
+   personal boards, photo gallery and board details.
+*/
+
+let visionUploadFiles = [];
+let currentVision = null;
+let currentVisionPhoto = 0;
+
+function openVisionStudio() {
+  $("vision-home")?.classList.add("hidden");
+  $("vision-editor")?.classList.remove("hidden");
+  $("vision-view")?.classList.add("hidden");
+
+  if ($("vision-editor-form")) $("vision-editor-form").reset();
+  visionUploadFiles = [];
+
+  if ($("vision-upload-preview")) $("vision-upload-preview").innerHTML = "";
+  if ($("vision-upload-count")) $("vision-upload-count").textContent = "No photos selected yet";
+  if ($("vision-preview-title")) $("vision-preview-title").textContent = "Your vision title";
+  if ($("vision-preview-description")) $("vision-preview-description").textContent = "Your photos will come together in one place.";
+  $("vision-preview-image")?.classList.add("hidden");
+  $("vision-preview-placeholder")?.classList.remove("hidden");
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeVisionEditor() {
+  $("vision-editor")?.classList.add("hidden");
+  $("vision-home")?.classList.remove("hidden");
+  $("vision-view")?.classList.add("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+$("open-vision-studio")?.addEventListener("click", openVisionStudio);
+$("vision-back")?.addEventListener("click", closeVisionEditor);
+$("vision-cancel")?.addEventListener("click", closeVisionEditor);
+$("vision-view-back")?.addEventListener("click", closeVisionEditor);
+
+$("vision-editor-title")?.addEventListener("input", event => {
+  if ($("vision-preview-title")) {
+    $("vision-preview-title").textContent = event.target.value || "Your vision title";
+  }
+});
+
+$("vision-editor-description")?.addEventListener("input", event => {
+  if ($("vision-preview-description")) {
+    $("vision-preview-description").textContent =
+      event.target.value || "Your photos will come together in one place.";
+  }
+});
+
+$("vision-editor-upload")?.addEventListener("change", event => {
+  const files = Array.from(event.target.files || []).slice(0, 25);
+  visionUploadFiles = files;
+
+  const preview = $("vision-upload-preview");
+  if (!preview) return;
+
+  preview.innerHTML = "";
+
+  files.forEach(file => {
+    if (!file.type.startsWith("image/")) return;
+
+    const url = URL.createObjectURL(file);
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = file.name;
+    preview.append(img);
+  });
+
+  if ($("vision-upload-count")) {
+    $("vision-upload-count").textContent =
+      files.length ? `${files.length} photo${files.length === 1 ? "" : "s"} selected` : "No photos selected yet";
+  }
+
+  if (files[0]) {
+    const url = URL.createObjectURL(files[0]);
+    const img = $("vision-preview-image");
+    if (img) {
+      img.src = url;
+      img.classList.remove("hidden");
+    }
+    $("vision-preview-placeholder")?.classList.add("hidden");
+  }
+});
+
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+$("vision-editor-form")?.addEventListener("submit", async event => {
+  event.preventDefault();
+
+  const title = $("vision-editor-title").value.trim();
+  const description = $("vision-editor-description").value.trim();
+
+  if (!title) {
+    toast("Give your vision board a title first.");
+    return;
+  }
+
+  if (!visionUploadFiles.length) {
+    toast("Choose at least one photo for your board.");
+    return;
+  }
+
+  try {
+    const images = await Promise.all(visionUploadFiles.map(fileToDataURL));
+
+    data.vision.unshift({
+      id: Date.now(),
+      title,
+      description,
+      images,
+      image: images[0],
+      steps: [
+        "Break the vision into small steps",
+        "Choose one action to begin",
+        "Review your progress"
+      ],
+      created: today()
+    });
+
+    save();
+    renderCustomVisions();
+    closeVisionEditor();
+    toast("Your vision board has been created!");
+  } catch {
+    toast("One of the photos could not be uploaded. Try again.");
+  }
+});
+
+function showVisionDetail(vision) {
+  currentVision = vision;
+  currentVisionPhoto = 0;
+
+  $("vision-home")?.classList.add("hidden");
+  $("vision-editor")?.classList.add("hidden");
+  $("vision-view")?.classList.remove("hidden");
+
+  if ($("vision-view-category")) {
+    $("vision-view-category").textContent = vision.created ? "MY VISION BOARD" : "INSPIRATION";
+  }
+
+  if ($("vision-view-title")) $("vision-view-title").textContent = vision.title || "My Vision";
+  if ($("vision-view-description")) $("vision-view-description").textContent = vision.description || "";
+  if ($("vision-view-full-description")) {
+    $("vision-view-full-description").textContent =
+      vision.description || "A collection of things that inspire you.";
+  }
+
+  const steps = $("vision-view-steps");
+  if (steps) {
+    steps.innerHTML = "";
+    (vision.steps || []).forEach((step, index) => {
+      const item = document.createElement("div");
+      item.className = "goal-item";
+      const number = document.createElement("strong");
+      number.textContent = String(index + 1).padStart(2, "0");
+      const text = document.createElement("span");
+      text.textContent = step;
+      item.append(number, text);
+      steps.append(item);
+    });
+  }
+
+  renderVisionGallery();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function getVisionImages(vision) {
+  if (Array.isArray(vision.images) && vision.images.length) return vision.images;
+  if (vision.image) return [vision.image];
+  return [];
+}
+
+function renderVisionGallery() {
+  if (!currentVision) return;
+
+  const images = getVisionImages(currentVision);
+  const main = $("vision-main-image");
+  const thumbs = $("vision-thumbnails");
+
+  if (main && images.length) {
+    main.src = images[currentVisionPhoto] || images[0];
+  }
+
+  if ($("vision-photo-counter")) {
+    $("vision-photo-counter").textContent =
+      `${currentVisionPhoto + 1} / ${Math.max(images.length, 1)}`;
+  }
+
+  if (thumbs) {
+    thumbs.innerHTML = "";
+
+    images.forEach((src, index) => {
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = `Vision photo ${index + 1}`;
+      img.style.outline = index === currentVisionPhoto ? "3px solid var(--primary)" : "none";
+      img.addEventListener("click", () => {
+        currentVisionPhoto = index;
+        renderVisionGallery();
+      });
+      thumbs.append(img);
+    });
+  }
+}
+
+$("vision-photo-prev")?.addEventListener("click", () => {
+  if (!currentVision) return;
+  const images = getVisionImages(currentVision);
+  if (!images.length) return;
+  currentVisionPhoto = (currentVisionPhoto - 1 + images.length) % images.length;
+  renderVisionGallery();
+});
+
+$("vision-photo-next")?.addEventListener("click", () => {
+  if (!currentVision) return;
+  const images = getVisionImages(currentVision);
+  if (!images.length) return;
+  currentVisionPhoto = (currentVisionPhoto + 1) % images.length;
+  renderVisionGallery();
+});
+
+document.querySelectorAll("#vision .vision-card[data-title]").forEach(card => {
+  card.addEventListener("click", () => {
+    showVisionDetail({
+      title: card.dataset.title,
+      description: card.dataset.description,
+      steps: (card.dataset.steps || "").split("|")
+    });
+  });
+});
+
+function renderCustomVisions() {
+  const wrap = $("my-visions");
+  if (!wrap) return;
+
+  wrap.innerHTML = "";
+
+  if (!data.vision.length) {
+    wrap.innerHTML = '<p class="empty-message">Your personal boards will appear here after you create one.</p>';
+    return;
+  }
+
+  data.vision.forEach(vision => {
+    const card = document.createElement("article");
+    card.className = "vision-card";
+
+    const img = document.createElement("img");
+    img.src = getVisionImages(vision)[0] || "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=900";
+    img.alt = vision.title;
+
+    const overlay = document.createElement("div");
+    overlay.className = "vision-overlay";
+
+    const tag = document.createElement("span");
+    tag.textContent = "MY VISION";
+
+    const title = document.createElement("h3");
+    title.textContent = vision.title;
+
+    const desc = document.createElement("p");
+    desc.textContent = vision.description || "Your personal inspiration board.";
+
+    const open = document.createElement("button");
+    open.className = "vision-open";
+    open.textContent = "Open board →";
+    open.addEventListener("click", event => {
+      event.stopPropagation();
+      showVisionDetail(vision);
+    });
+
+    const remove = document.createElement("button");
+    remove.className = "vision-open";
+    remove.textContent = "Remove board";
+    remove.addEventListener("click", event => {
+      event.stopPropagation();
+      if (!confirm("Remove this vision board?")) return;
+      data.vision = data.vision.filter(item => item.id !== vision.id);
+      save();
+      renderCustomVisions();
+      toast("Board removed.");
+    });
+
+    overlay.append(tag, title, desc, open, remove);
+    card.append(img, overlay);
+    card.addEventListener("click", () => showVisionDetail(vision));
+    wrap.append(card);
+  });
+}
+
+/* FUTURE ME */
+
+function renderFuture() {
+  const list = $("future-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!data.future.length) {
+    list.innerHTML = '<p class="empty-message">Your letters to the future will appear here.</p>';
+    return;
+  }
+
+  data.future.forEach(letter => {
+    const card = document.createElement("article");
+    card.className = "future-item";
+
+    const title = document.createElement("h3");
+    title.textContent = letter.title;
+
+    const date = document.createElement("p");
+    date.className = "muted";
+    date.textContent = `Unlock date: ${letter.date}`;
+
+    card.append(title, date);
+
+    if (letter.date <= today()) {
+      const reveal = document.createElement("button");
+      reveal.className = "secondary-btn";
+      reveal.textContent = "Open letter";
+
+      reveal.addEventListener("click", () => {
+        if (card.querySelector(".letter-message")) return;
+        const message = document.createElement("p");
+        message.className = "letter-message";
+        message.style.whiteSpace = "pre-wrap";
+        message.style.marginTop = "14px";
+        message.textContent = letter.message;
+        card.append(message);
+      });
+
+      card.append(reveal);
+    } else {
+      const locked = document.createElement("small");
+      locked.className = "muted";
+      locked.textContent = "🔒 This letter is waiting for its day.";
+      card.append(locked);
+    }
+
+    const del = document.createElement("button");
+    del.className = "icon-btn";
+    del.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    del.addEventListener("click", () => {
+      data.future = data.future.filter(item => item.id !== letter.id);
+      save();
+      renderFuture();
+    });
+
+    card.append(del);
+    list.append(card);
+  });
+}
+
+$("future-date")?.setAttribute("min", today());
+
+$("future-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const date = $("future-date").value;
+  if (date < today()) {
+    toast("Choose today or a future date.");
+    return;
+  }
+
+  data.future.unshift({
+    id: Date.now(),
+    title: $("future-title").value.trim(),
+    date,
+    message: $("future-message").value.trim()
+  });
+
+  $("future-form").reset();
+  $("future-date").min = today();
+  save();
+  renderFuture();
+  toast("Your letter has been sealed.");
+});
+
+/* FOCUS SOUNDS
+   Built-in ambient sounds are generated in the browser.
+*/
+
+function stopSound() {
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio = null;
+  }
+
+  activeAudioNodes.forEach(node => {
+    try { node.stop?.(); } catch {}
+    try { node.disconnect?.(); } catch {}
+  });
+
+  activeAudioNodes = [];
+
+  document.querySelectorAll(".sound-btn").forEach(button => {
+    button.textContent = "Play sound";
+    button.classList.remove("playing");
+  });
+}
+
+function getAudioContext() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) throw new Error("Audio is not supported in this browser.");
+  if (!audioContext) audioContext = new AudioCtx();
+  if (audioContext.state === "suspended") audioContext.resume();
+  return audioContext;
+}
+
+function createNoise(ctx, type = "pink") {
+  const length = ctx.sampleRate * 4;
+  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+  const output = buffer.getChannelData(0);
+
+  let last = 0;
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    if (type === "brown") {
+      last = (last + 0.02 * white) / 1.02;
+      output[i] = last * 3.5;
+    } else {
+      output[i] = white * 0.45;
+    }
+  }
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  return source;
+}
+
+function playAmbientSound(name, button) {
+  stopSound();
+
+  try {
+    const ctx = getAudioContext();
+    const master = ctx.createGain();
+    master.gain.value = 0.17;
+    master.connect(ctx.destination);
+
+    const noise = createNoise(ctx, name === "ocean" || name === "wind" ? "brown" : "pink");
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    filter.type = "lowpass";
+    filter.frequency.value = name === "rain" ? 1200 :
+      name === "forest" ? 1800 :
+      name === "ocean" ? 500 :
+      name === "fire" ? 750 :
+      name === "night" ? 600 :
+      name === "wind" ? 400 : 900;
+
+    gain.gain.value = name === "white" ? 0.28 : 0.8;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    noise.start();
+
+    activeAudioNodes.push(noise, filter, gain, master);
+
+    if (name === "ocean" || name === "wind") {
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = name === "ocean" ? 0.12 : 0.07;
+      lfoGain.gain.value = 0.10;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+      lfo.start();
+      activeAudioNodes.push(lfo, lfoGain);
+    }
+
+    if (name === "forest" || name === "night") {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = name === "forest" ? 1300 : 520;
+      oscGain.gain.value = 0.018;
+      osc.connect(oscGain);
+      oscGain.connect(master);
+      osc.start();
+      activeAudioNodes.push(osc, oscGain);
+    }
+
+    button.textContent = "Stop sound";
+    button.classList.add("playing");
+    toast("Now playing: " + name.charAt(0).toUpperCase() + name.slice(1));
+  } catch {
+    toast("Audio could not start in this browser.");
+  }
+}
+
+document.querySelectorAll(".sound-btn").forEach(button => {
+  button.addEventListener("click", () => {
+    if (button.classList.contains("playing")) {
+      stopSound();
+      return;
+    }
+    playAmbientSound(button.dataset.sound, button);
+  });
+});
+
+$("sound-upload")?.addEventListener("change", event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("audio/")) {
+    toast("Please choose an audio file.");
+    return;
+  }
+
+  stopSound();
+
+  const audio = $("custom-audio");
+  if (customAudioURL) URL.revokeObjectURL(customAudioURL);
+
+  customAudioURL = URL.createObjectURL(file);
+  audio.src = customAudioURL;
+  audio.classList.remove("hidden");
+  $("remove-custom-sound")?.classList.remove("hidden");
+
+  audio.play().catch(() => {
+    toast("Your audio is ready. Press play to listen.");
+  });
+});
+
+$("remove-custom-sound")?.addEventListener("click", () => {
+  const audio = $("custom-audio");
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+  audio.classList.add("hidden");
+  $("remove-custom-sound").classList.add("hidden");
+  $("sound-upload").value = "";
+
+  if (customAudioURL) URL.revokeObjectURL(customAudioURL);
+  customAudioURL = null;
+  toast("Custom sound removed.");
+});
+
+/* POMODORO TIMER */
+
+function updateTimer() {
+  if (!$("timer-display")) return;
+
+  const minutes = Math.floor(timerSeconds / 60);
+  const seconds = timerSeconds % 60;
+
+  $("timer-display").textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+$("timer-start")?.addEventListener("click", () => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    $("timer-start").textContent = "Resume";
+    return;
+  }
+
+  $("timer-start").textContent = "Pause";
+
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimer();
+
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerSeconds = 25 * 60;
+      updateTimer();
+
+      data.focusSessions = (data.focusSessions || 0) + 1;
+      addXP(20);
+      markActivity();
+      renderDashboard();
+
+      $("timer-start").textContent = "Start";
+      toast("Focus session complete! +20 XP");
+    }
+  }, 1000);
+});
+
+$("timer-reset")?.addEventListener("click", () => {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerSeconds = 25 * 60;
+  updateTimer();
+  if ($("timer-start")) $("timer-start").textContent = "Start";
+});
+
+/* 30 DAY CHALLENGE */
+
+function renderChallenge() {
+  const challenge = data.challenge;
+
+  if ($("challenge-title")) {
+    $("challenge-title").textContent = challenge?.title || "Start a new challenge";
+  }
+
+  if ($("challenge-description")) {
+    $("challenge-description").textContent = challenge
+      ? "Your 30-day journey is in progress."
+      : "Choose one small goal to practice for 30 days.";
+  }
+
+  if ($("challenge-input")) $("challenge-input").disabled = !!challenge;
+
+  const form = $("challenge-form");
+  if (form) form.querySelector("button").disabled = !!challenge;
+
+  $("challenge-reset")?.classList.toggle("hidden", !challenge);
+
+  const count = challenge?.days?.filter(Boolean).length || 0;
+
+  if ($("challenge-count")) $("challenge-count").textContent = `${count} / 30 days`;
+  if ($("challenge-bar")) $("challenge-bar").style.width = (count / 30 * 100) + "%";
+
+  const days = $("challenge-days");
+
+  if (days) {
+    days.innerHTML = "";
+
+    for (let i = 0; i < 30; i++) {
+      const button = document.createElement("button");
+      button.className = "challenge-day" + (challenge?.days?.[i] ? " done" : "");
+      button.textContent = i + 1;
+      button.title = `Day ${i + 1}`;
+      button.disabled = !challenge || !!challenge.days[i] || count !== i;
+
+      button.addEventListener("click", () => {
+        challenge.days[i] = true;
+        addXP(8);
+        markActivity();
+        save();
+        renderChallenge();
+      });
+
+      days.append(button);
+    }
+  }
+
+  renderHeatmap();
+}
+
+$("challenge-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const title = $("challenge-input").value.trim();
+  if (!title) return;
+
+  data.challenge = { title, days: Array(30).fill(false) };
+  $("challenge-form").reset();
+  save();
+  renderChallenge();
+  toast("Your challenge has started!");
+});
+
+$("challenge-reset")?.addEventListener("click", () => {
+  if (!confirm("Reset your 30-day challenge?")) return;
+  data.challenge = null;
+  save();
+  renderChallenge();
+});
+
+function renderHeatmap() {
+  const wrap = $("activity-heatmap");
+  if (!wrap) return;
+
+  wrap.innerHTML = "";
+
+  const totalDays = 180;
+  let active = 0;
+  let best = 0;
+  let streak = 0;
+
+  for (let i = totalDays - 1; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const key = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
+
+    const amount = data.activity[key] || 0;
+    const cell = document.createElement("span");
+    cell.className = "heat-level-" + Math.min(4, amount);
+    cell.title = `${key}: ${amount} activities`;
+    wrap.append(cell);
+
+    if (amount) active++;
+    best = Math.max(best, amount);
+  }
+
+  for (let i = 0; i < totalDays; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const key = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString().slice(0, 10);
+
+    if (data.activity[key]) streak++;
+    else break;
+  }
+
+  if ($("heatmap-total")) {
+    $("heatmap-total").textContent =
+      Object.values(data.activity).reduce((sum, value) => sum + value, 0) + " activities";
+  }
+
+  if ($("heatmap-active-days")) $("heatmap-active-days").textContent = active;
+  if ($("heatmap-best-day")) $("heatmap-best-day").textContent = best || "—";
+  if ($("heatmap-streak")) $("heatmap-streak").textContent = streak;
+  if ($("heatmap-months")) $("heatmap-months").textContent = "Last 6 months";
+}
+
+/* REFLECTIONS */
+
+$("reflection-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  data.reflections.unshift({
+    id: Date.now(),
+    date: today(),
+    good: $("reflection-good").value,
+    hard: $("reflection-hard").value,
+    next: $("reflection-next").value
+  });
+
+  $("reflection-form").reset();
+  save();
+  renderReflections();
+  markActivity();
+  toast("Reflection saved.");
+});
+
+function renderReflections() {
+  const list = $("reflection-list");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!data.reflections.length) {
+    list.innerHTML = '<p class="empty-message">Your saved reflections will appear here.</p>';
+    return;
+  }
+
+  data.reflections.forEach(reflection => {
+    const card = document.createElement("div");
+    card.className = "panel reflection-item";
+
+    const heading = document.createElement("h3");
+    heading.textContent = new Date(reflection.date + "T12:00:00").toLocaleDateString(
+      undefined,
+      { year: "numeric", month: "long", day: "numeric" }
+    );
+
+    card.append(heading);
+
+    [
+      ["What went well", reflection.good],
+      ["What challenged you", reflection.hard],
+      ["Next week", reflection.next]
+    ].forEach(([label, value]) => {
+      if (!value) return;
+      const p = document.createElement("p");
+      p.textContent = label + ": " + value;
+      card.append(p);
+    });
+
+    list.append(card);
+  });
+}
+
+/* SMART LISTS */
+
+const templates = {
+  "Study Checklist": [
+    "Review notes", "Finish assignments", "Prepare questions", "Take a short break"
+  ],
+  "Weekly Reset": [
+    "Plan the week", "Tidy my workspace", "Check upcoming dates", "Prepare essentials"
+  ],
+  "Shopping List": [
+    "Add groceries", "Add home essentials", "Check what I already have"
+  ],
+  "Books to Read": [
+    "Choose a book", "Read a few pages", "Write a short note"
+  ],
+  "Movie Watchlist": [
+    "Add a movie", "Pick a movie night", "Rate what I watched"
+  ],
+  "Ideas & Projects": [
+    "Write the idea", "List first steps", "Choose a start date"
+  ]
+};
+
+function renderSmartLists() {
+  const wrap = $("smartlist-container");
+  if (!wrap) return;
+
+  wrap.innerHTML = "";
+
+  if (!data.smartLists.length) {
+    wrap.innerHTML = '<p class="empty-message">No lists yet. Choose a template or create your own list.</p>';
+    return;
+  }
+
+  data.smartLists.forEach(list => {
+    const card = document.createElement("div");
+    card.className = "smartlist-card";
+
+    const header = document.createElement("div");
+    header.className = "panel-heading";
+
+    const heading = document.createElement("h3");
+    heading.textContent = list.name;
+
+    const count = document.createElement("span");
+    count.className = "muted";
+    count.textContent = `${list.items.filter(item => item.done).length}/${list.items.length}`;
+
+    header.append(heading, count);
+    card.append(header);
+
+    list.items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "goal-item" + (item.done ? " completed" : "");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = !!item.done;
+
+      const text = document.createElement("span");
+      text.textContent = item.text;
+
+      const remove = document.createElement("button");
+      remove.className = "icon-btn";
+      remove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+      remove.title = "Remove item";
+
+      checkbox.addEventListener("change", () => {
+        item.done = checkbox.checked;
+        save();
+        renderSmartLists();
+      });
+
+      remove.addEventListener("click", () => {
+        list.items = list.items.filter(current => current !== item);
+        save();
+        renderSmartLists();
+      });
+
+      row.append(checkbox, text, remove);
+      card.append(row);
+    });
+
+    const form = document.createElement("form");
+    form.className = "inline-form";
+
+    const input = document.createElement("input");
+    input.placeholder = "Add an item...";
+    input.required = true;
+
+    const button = document.createElement("button");
+    button.className = "secondary-btn";
+    button.textContent = "Add";
+
+    form.append(input, button);
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (!value) return;
+
+      list.items.push({ text: value, done: false });
+      save();
+      renderSmartLists();
+    });
+
+    const deleteList = document.createElement("button");
+    deleteList.className = "text-btn";
+    deleteList.textContent = "Delete list";
+    deleteList.addEventListener("click", () => {
+      if (!confirm(`Delete "${list.name}"?`)) return;
+      data.smartLists = data.smartLists.filter(item => item !== list);
+      save();
+      renderSmartLists();
+    });
+
+    card.append(form, deleteList);
+    wrap.append(card);
+  });
+}
+
+$("smartlist-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const name = $("smartlist-name").value.trim();
+  if (!name) return;
+
+  if (data.smartLists.some(list => list.name.toLowerCase() === name.toLowerCase())) {
+    toast("A list with this name already exists.");
+    return;
+  }
+
+  data.smartLists.push({ name, items: [] });
+  $("smartlist-form").reset();
+  save();
+  renderSmartLists();
+  toast("Your list has been created!");
+});
+
+document.querySelectorAll(".template-card").forEach(button => {
+  button.addEventListener("click", () => {
+    const name = button.dataset.template;
+
+    if (data.smartLists.some(list => list.name === name)) {
+      toast("This template has already been added.");
+      return;
+    }
+
+    data.smartLists.push({
+      name,
+      items: (templates[name] || []).map(text => ({ text, done: false }))
+    });
+
+    save();
+    renderSmartLists();
+    toast(name + " created!");
+  });
+});
+
+/* ACHIEVEMENTS */
+
+const achievements = [
+  ["First Step", "Complete your first task", () => data.tasks.some(task => task.done), "fa-flag-checkered"],
+  ["Getting Things Done", "Complete 10 tasks", () => data.tasks.filter(task => task.done).length >= 10, "fa-list-check"],
+  ["Goal Getter", "Complete 5 daily goals", () => data.goals.filter(goal => goal.done).length >= 5, "fa-bullseye"],
+  ["Focus Friend", "Finish 3 focus sessions", () => (data.focusSessions || 0) >= 3, "fa-hourglass-half"],
+  ["Consistency", "Complete a 30-day challenge", () => !!data.challenge && data.challenge.days.every(Boolean), "fa-fire"],
+  ["Vision Builder", "Create a personal vision board", () => data.vision.length > 0, "fa-images"],
+  ["XP Collector", "Earn 500 XP", () => (data.xp || 0) >= 500, "fa-star"],
+  ["Big Progress", "Earn 1500 XP", () => (data.xp || 0) >= 1500, "fa-trophy"],
+  ["Planner Pro", "Create 10 daily goals", () => data.goals.length >= 10, "fa-calendar-check"]
+];
+
+function renderAchievements() {
+  if ($("achievement-xp")) $("achievement-xp").textContent = data.xp || 0;
+  if ($("achievement-tasks")) {
+    $("achievement-tasks").textContent = data.tasks.filter(task => task.done).length;
+  }
+  if ($("achievement-focus")) $("achievement-focus").textContent = data.focusSessions || 0;
+
+  const unlocked = achievements.filter(item => item[2]()).length;
+  if ($("achievement-count")) $("achievement-count").textContent = unlocked;
+
+  const list = $("achievement-list");
+
+  if (list) {
+    list.innerHTML = "";
+
+    achievements.forEach(achievement => {
+      const isUnlocked = achievement[2]();
+
+      const card = document.createElement("div");
+      card.className = "achievement-card";
+
+      const icon = document.createElement("i");
+      icon.className = "fa-solid " + achievement[3];
+
+      const title = document.createElement("strong");
+      title.textContent = achievement[0];
+
+      const description = document.createElement("p");
+      description.textContent = achievement[1];
+
+      const status = document.createElement("small");
+      status.textContent = isUnlocked ? "✓ Unlocked" : "🔒 Locked";
+      status.style.color = isUnlocked ? "#65a986" : "var(--muted)";
+
+      card.append(icon, title, description, status);
+      list.append(card);
+    });
+  }
+
+  renderThemeStore();
+}
+
+/* THEME SHOP */
+
+const themes = [
+  {
+    name: "Lavender", cost: 0, primary: "#8585dc", light: "#eeeeff",
+    background: "#f5f6fc", surface: "#ffffff", description: "The original soft lavender look."
+  },
+  {
+    name: "Rose", cost: 300, primary: "#dc8eae", light: "#ffedf4",
+    background: "#fcf4f7", surface: "#ffffff", description: "A soft pink and rose atmosphere."
+  },
+  {
+    name: "Mint", cost: 700, primary: "#70b797", light: "#e8f7ef",
+    background: "#f2faf6", surface: "#ffffff", description: "Fresh, calm and nature inspired."
+  },
+  {
+    name: "Ocean", cost: 1200, primary: "#68a9cc", light: "#e9f5fc",
+    background: "#f1f8fc", surface: "#ffffff", description: "A cool blue workspace."
+  },
+  {
+    name: "Peach", cost: 1800, primary: "#df9d75", light: "#fff0e6",
+    background: "#fff7f1", surface: "#ffffff", description: "Warm peach tones and soft light."
+  },
+  {
+    name: "Midnight", cost: 2500, primary: "#9b91df", light: "#34304f",
+    background: "#191827", surface: "#25233a", description: "A deep dark theme for night sessions."
+  },
+  {
+    name: "Sage Garden", cost: 3200, primary: "#8ba77d", light: "#edf4e9",
+    background: "#f4f7f0", surface: "#ffffff", description: "A gentle botanical colour palette."
+  },
+  {
+    name: "Dreamy Sky", cost: 4500, primary: "#82a8e7", light: "#eaf1ff",
+    background: "#f3f7ff", surface: "#ffffff", description: "Airy blue tones with a dreamy feel."
+  }
+];
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+
+  root.style.setProperty("--primary", theme.primary);
+  root.style.setProperty("--primary-light", theme.light);
+  root.style.setProperty("--bg", theme.background);
+  root.style.setProperty("--surface", theme.surface);
+  root.style.setProperty("--primary-dark", theme.primary);
+
+  data.themeName = theme.name;
+  data.profile.color = theme.primary;
+
+  document.body.classList.toggle("dark", theme.name === "Midnight");
+  save();
+  renderHeader();
+  renderProfile();
+}
+
+function renderThemeStore() {
+  const store = $("theme-store");
+  if (!store) return;
+
+  store.innerHTML = "";
+
+  themes.forEach(theme => {
+    const unlocked = data.unlockedThemes.includes(theme.name);
+    const selected = data.themeName === theme.name ||
+      (!data.themeName && theme.name === "Lavender");
+
+    const card = document.createElement("div");
+    card.className = "theme-card";
+
+    const mockup = document.createElement("div");
+    mockup.className = "theme-mockup";
+    mockup.style.background = theme.background;
+
+    const sidebar = document.createElement("div");
+    sidebar.className = "theme-mock-sidebar";
+    sidebar.style.background = theme.primary;
+
+    const content = document.createElement("div");
+    content.className = "theme-mock-content";
+
+    for (let i = 0; i < 3; i++) {
+      const line = document.createElement("span");
+      line.style.background = i === 0 ? theme.primary : theme.light;
+      content.append(line);
+    }
+
+    mockup.append(sidebar, content);
+
+    const title = document.createElement("strong");
+    title.textContent = theme.name;
+
+    const description = document.createElement("p");
+    description.textContent = theme.description;
+
+    const cost = document.createElement("p");
+    cost.className = "theme-cost";
+    cost.textContent = theme.cost === 0 ? "FREE" : theme.cost.toLocaleString() + " XP";
+
+    const button = document.createElement("button");
+    button.className = selected ? "primary-btn" : "secondary-btn";
+
+    if (selected) {
+      button.textContent = "Currently selected";
+      button.disabled = true;
+    } else if (unlocked) {
+      button.textContent = "Use theme";
+    } else {
+      button.textContent = "Unlock theme";
+    }
+
+    button.addEventListener("click", () => {
+      if (!unlocked) {
+        if ((data.xp || 0) < theme.cost) {
+          toast(`You need ${(theme.cost - data.xp).toLocaleString()} more XP.`);
+          return;
+        }
+
+        data.xp -= theme.cost;
+        data.unlockedThemes.push(theme.name);
+        toast(theme.name + " theme unlocked!");
+      }
+
+      applyTheme(theme);
+      renderThemeStore();
+      toast(theme.name + " theme applied!");
+    });
+
+    card.append(mockup, title, description, cost, button);
+    store.append(card);
+  });
+
+  if ($("shop-xp")) $("shop-xp").textContent = (data.xp || 0) + " XP";
+}
+
+function loadSavedTheme() {
+  const theme = themes.find(item => item.name === data.themeName) || themes[0];
+  applyTheme(theme);
+
+  if (data.theme === "dark" && theme.name !== "Midnight") {
+    document.body.classList.add("dark");
+  }
+}
+
+/* PROFILE STUDIO */
+
+function renderProfile() {
+  if ($("profile-name")) $("profile-name").value = data.profile.name || "";
+  if ($("profile-color")) $("profile-color").value = data.profile.color || "#8585dc";
+
+  const initial = (data.profile.name || "F").trim().charAt(0).toUpperCase();
+
+  if ($("profile-avatar")) {
+    $("profile-avatar").textContent = initial;
+    $("profile-avatar").style.background = data.profile.color || "var(--primary)";
+  }
+
+  if ($("profile-preview-name")) {
+    $("profile-preview-name").textContent = data.profile.name || "FlowUp member";
+  }
+
+  if ($("profile-preview-xp")) {
+    $("profile-preview-xp").textContent = (data.xp || 0) + " XP earned";
+  }
+
+  if ($("profile-stats")) {
+    $("profile-stats").innerHTML = `
+      <div><strong>${data.xp || 0}</strong><span>Total XP</span></div>
+      <div><strong>${data.tasks.filter(task => task.done).length}</strong><span>Tasks done</span></div>
+      <div><strong>${data.focusSessions || 0}</strong><span>Focus sessions</span></div>`;
+  }
+}
+
+$("profile-form")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  data.profile.name = $("profile-name").value.trim();
+  data.profile.color = $("profile-color").value;
+
+  save();
+  renderProfile();
+  renderHeader();
+  toast("Your profile has been saved!");
+});
+
+$("profile-color")?.addEventListener("input", event => {
+  const color = event.target.value;
+  if ($("profile-avatar")) $("profile-avatar").style.background = color;
+  if ($("top-avatar")) $("top-avatar").style.background = color;
+});
+
+document.querySelectorAll(".color-choice").forEach(button => {
+  button.addEventListener("click", () => {
+    const color = button.dataset.color;
+    $("profile-color").value = color;
+    $("profile-color").dispatchEvent(new Event("input"));
+  });
+});
+
+/* GENERAL SETTINGS */
+
+$("theme-toggle")?.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  data.theme = document.body.classList.contains("dark") ? "dark" : "light";
+  save();
+});
+
+$("mobile-menu")?.addEventListener("click", () => {
+  $("sidebar")?.classList.toggle("open");
+});
+
+document.querySelectorAll(".nav-link[data-page]").forEach(button => {
+  button.addEventListener("click", () => openPage(button.dataset.page));
+});
+
+/* INITIALIZE */
+
+function init() {
+  if (data.themeName) {
+    const selected = themes.find(theme => theme.name === data.themeName);
+    if (selected) {
+      document.documentElement.style.setProperty("--primary", selected.primary);
+      document.documentElement.style.setProperty("--primary-light", selected.light);
+      document.documentElement.style.setProperty("--bg", selected.background);
+      document.documentElement.style.setProperty("--surface", selected.surface);
+      document.documentElement.style.setProperty("--primary-dark", selected.primary);
+    }
+  }
+
+  if (data.theme === "dark" || data.themeName === "Midnight") {
+    document.body.classList.add("dark");
+  }
+
+  renderHeader();
+  renderTasks();
+  renderGoals();
+  renderDashboard();
+  renderHabits();
+  renderNotes();
+  renderCustomVisions();
+  renderFuture();
+  renderChallenge();
+  renderReflections();
+  renderSmartLists();
+  renderAchievements();
+  renderProfile();
+  updateTimer();
+}
+
+init();
